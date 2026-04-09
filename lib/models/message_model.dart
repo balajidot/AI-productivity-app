@@ -1,3 +1,5 @@
+import 'ai_action_model.dart';
+
 enum MessageRole { user, assistant }
 
 class AIMessage {
@@ -6,11 +8,14 @@ class AIMessage {
   final MessageRole role;
   final DateTime timestamp;
 
+  final List<AIAction>? actions;
+
   AIMessage({
     required this.id,
     required this.text,
     required this.role,
     required this.timestamp,
+    this.actions,
   });
 
   Map<String, dynamic> toMap() {
@@ -19,6 +24,7 @@ class AIMessage {
       'text': text,
       'role': role.index,
       'timestamp': timestamp.toIso8601String(),
+      'actions': actions?.map((x) => x.toMap()).toList(),
     };
   }
 
@@ -30,6 +36,7 @@ class AIMessage {
       timestamp: map['timestamp'] != null 
           ? DateTime.tryParse(map['timestamp'].toString()) ?? DateTime.now() 
           : DateTime.now(),
+      actions: (map['actions'] as List?)?.map((x) => AIAction.fromMap(x)).toList(),
     );
   }
 }

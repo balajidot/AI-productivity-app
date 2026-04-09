@@ -44,6 +44,9 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isLowPerformance = ref.watch(performanceModeProvider);
+
+    // Watch providers in smaller scopes if possible, but for simplicity here we watch them at top
     final userName = ref.watch(userNameProvider);
     final userPhoto = ref.watch(userPhotoProvider);
     final stats = ref.watch(taskStatsProvider);
@@ -52,223 +55,291 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with Profile
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Hero(
-                          tag: 'app_logo',
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                                width: 1,
+        child: RepaintBoundary(
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    // Header with Profile
+                    RepaintBoundary(
+                      child: _buildHeader(context, theme, userName, userPhoto, isLowPerformance),
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    _maybeAnimate(
+                      isLowPerformance,
+                      Text(
+                        _getFocusMessage(),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      delay: 200.ms,
+                    ),
+                    
+                    const SizedBox(height: 32),
+          
+                    // Stats Cards Row
+                    _maybeAnimate(
+                      isLowPerformance,
+                      RepaintBoundary(
+                        child: SizedBox(
+                          height: 130,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: _buildStatCard(
+                                  context,
+                                  'Today',
+                                  '${stats['todayCompleted']}/${stats['todayTotal']}',
+                                  LucideIcons.checkCircle,
+                                  AppColors.primary,
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    ref.read(navigationProvider.notifier).set(1);
+                                  },
+                                ),
                               ),
-                            ),
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                fit: BoxFit.cover,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildStatCard(
+                                  context,
+                                  'Overdue',
+                                  '${stats['overdue']}',
+                                  LucideIcons.alertCircle,
+                                  stats['overdue']! > 0 ? AppColors.error : AppColors.primary,
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    ref.read(navigationProvider.notifier).set(1);
+                                  },
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildStatCard(
+                                  context,
+                                  'Total Done',
+                                  '${stats['completed']}',
+                                  LucideIcons.trophy,
+                                  AppColors.tertiary,
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    ref.read(navigationProvider.notifier).set(1);
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          '${_getGreeting()}, $userName.',
-                          style: Theme.of(context).textTheme.displayLarge,
-                        ).animate().fadeIn(duration: 600.ms).slideX(begin: -0.1),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                      );
-                    },
-                    child: Hero(
-                      tag: 'user_avatar',
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3), width: 2),
-                          image: userPhoto != null 
-                            ? DecorationImage(image: NetworkImage(userPhoto), fit: BoxFit.cover)
-                            : null,
-                        ),
-                        child: userPhoto == null 
-                          ? const Icon(LucideIcons.user, color: AppColors.primary)
-                          : null,
                       ),
+                      delay: 300.ms,
+                      slide: const Offset(0, 0.1),
                     ),
-                  ).animate().fadeIn(delay: 200.ms).scale(),
-                ],
+          
+                    const SizedBox(height: 32),
+          
+                    // AI Insight Card
+                    _maybeAnimate(
+                      isLowPerformance,
+                      RepaintBoundary(
+                        child: _buildAIInsightCard(theme, stats, ref),
+                      ),
+                      delay: 400.ms,
+                    ),
+          
+                    const SizedBox(height: 32),
+                  ]),
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                _getFocusMessage(),
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
-              const SizedBox(height: 32),
-
-              // Stats Cards Row
-              SizedBox(
-                height: 130,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        context,
-                        'Today',
-                        '${stats['todayCompleted']}/${stats['todayTotal']}',
-                        LucideIcons.checkCircle,
-                        AppColors.primary,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          ref.read(navigationProvider.notifier).set(1);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatCard(
-                        context,
-                        'Overdue',
-                        '${stats['overdue']}',
-                        LucideIcons.alertCircle,
-                        stats['overdue']! > 0 ? AppColors.error : AppColors.primary,
-                        onTap: () {
-                          HapticFeedback.mediumImpact();
-                          ref.read(navigationProvider.notifier).set(1);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatCard(
-                        context,
-                        'Total Done',
-                        '${stats['completed']}',
-                        LucideIcons.trophy,
-                        AppColors.tertiary,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          ref.read(navigationProvider.notifier).set(1);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
-
-              const SizedBox(height: 32),
-
-              // AI Insight Card
-              _buildAIInsightCard(theme, stats, ref),
-
-              const SizedBox(height: 32),
-
+              
               // Overdue Section
               if (overdueTasks.isNotEmpty) ...[
-                SectionHeader(
-                  title: 'Overdue', 
-                  color: AppColors.error, 
-                  count: overdueTasks.length
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  sliver: SliverToBoxAdapter(
+                    child: SectionHeader(
+                      title: 'Overdue', 
+                      color: AppColors.error, 
+                      count: overdueTasks.length
+                    ),
+                  ),
                 ),
-                ...overdueTasks.map((task) => TaskCard(task: task, isOverdue: true)),
-                const SizedBox(height: 24),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => TaskCard(task: overdueTasks[index], isOverdue: true),
+                      childCount: overdueTasks.length,
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
-
+          
               // Today's Tasks
-              SectionHeader(
-                title: "Today's Flow", 
-                color: AppColors.primary, 
-                count: todayTasks.length
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                sliver: SliverToBoxAdapter(
+                  child: SectionHeader(
+                    title: "Today's Flow", 
+                    color: AppColors.primary, 
+                    count: todayTasks.length
+                  ),
+                ),
               ),
+              
               if (todayTasks.isEmpty)
-                GlassContainer(
-                  child: Row(
-                    children: [
-                      Icon(LucideIcons.sunrise, color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5), size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'No tasks for today. Tap + to add one!',
-                          style: GoogleFonts.inter(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontSize: 14,
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  sliver: SliverToBoxAdapter(
+                    child: GlassContainer(
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.sunrise, color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5), size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'No tasks for today. Tap + to add one!',
+                              style: GoogleFonts.inter(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 )
               else
-                Column(
-                  children: todayTasks.map((task) => TaskCard(task: task)).toList(),
-                ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.05),
-
-              const SizedBox(height: 32),
-
-              // Quick Actions
-              Text(
-                'Quick Actions',
-                style: Theme.of(context).textTheme.headlineMedium,
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => TaskCard(task: todayTasks[index]),
+                      childCount: todayTasks.length,
+                    ),
+                  ),
+                ),
+          
+              SliverPadding(
+                padding: const EdgeInsets.all(24),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const SizedBox(height: 8),
+                    // Quick Actions
+                    Text(
+                      'Quick Actions',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    _maybeAnimate(
+                      isLowPerformance,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildQuickAction(
+                              context,
+                              LucideIcons.plus,
+                              'Add Task',
+                              AppColors.primary,
+                              () {
+                                HapticFeedback.lightImpact();
+                                ref.read(navigationProvider.notifier).set(1);
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildQuickAction(
+                              context,
+                              LucideIcons.messageSquare,
+                              'Ask AI',
+                              AppColors.tertiary,
+                              () {
+                                HapticFeedback.lightImpact();
+                                ref.read(navigationProvider.notifier).set(3);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      delay: 600.ms,
+                    ),
+                  ]),
+                ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildQuickAction(
-                      context,
-                      LucideIcons.plus,
-                      'Add Task',
-                      AppColors.primary,
-                      () {
-                        HapticFeedback.lightImpact();
-                        ref.read(navigationProvider.notifier).set(1);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildQuickAction(
-                      context,
-                      LucideIcons.messageSquare,
-                      'Ask AI',
-                      AppColors.tertiary,
-                      () {
-                        HapticFeedback.lightImpact();
-                        ref.read(navigationProvider.notifier).set(3);
-                      },
-                    ),
-                  ),
-                ],
-              ).animate().fadeIn(delay: 600.ms),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _maybeAnimate(bool isLowPerformance, Widget child, {Duration? duration, Duration? delay, Offset? slide}) {
+    if (isLowPerformance) return child;
+    var anim = child.animate().fadeIn(duration: duration ?? 600.ms, delay: delay);
+    if (slide != null) {
+      anim = anim.slide(begin: slide, duration: duration ?? 600.ms);
+    }
+    return anim;
+  }
+
+  Widget _buildHeader(BuildContext context, ThemeData theme, String name, String? photo, bool isLowPerformance) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _maybeAnimate(
+                isLowPerformance,
+                Text(
+                  '${_getGreeting()}, $name.', // Correctly using the method
+                  style: Theme.of(context).textTheme.displayLarge,
+                ),
+                duration: 600.ms,
+                slide: const Offset(-0.1, 0),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+          child: Hero(
+            tag: 'user_avatar',
+            child: _maybeAnimate(
+              isLowPerformance,
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3), width: 2),
+                  image: photo != null 
+                    ? DecorationImage(image: NetworkImage(photo), fit: BoxFit.cover)
+                    : null,
+                ),
+                child: photo == null 
+                  ? const Icon(LucideIcons.user, color: AppColors.primary)
+                  : null,
+              ),
+              delay: 200.ms,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -315,12 +386,9 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
-    ).animate(onPlay: (c) => c.stop()).scale(
-      begin: const Offset(1, 1),
-      end: const Offset(0.96, 0.96),
-      duration: 100.ms,
     );
   }
+
   Widget _buildAIInsightCard(ThemeData theme, Map<String, int> stats, WidgetRef ref) {
     final metrics = ref.watch(productivityMetricsProvider);
     final growth = double.tryParse(metrics['growth'] ?? '0.0') ?? 0.0;
@@ -352,7 +420,7 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.95, 0.95));
+    );
   }
 
   Widget _buildQuickAction(BuildContext context, IconData icon, String label, Color color, VoidCallback onTap) {

@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Base Colors
-  static const Color background = Color(0xFF0E0E0E);
-  static const Color surface = Color(0xFF0E0E0E);
+  static const Color background = Color(0xFF0C0C0E);
+  static const Color surface = Color(0xFF0C0C0E);
   
-  // Tonal Surfaces (Design Mandate: Tonal Transitions)
-  static const Color surfaceLow = Color(0xFF131313);
-  static const Color surfaceContainer = Color(0xFF1A1919);
-  static const Color surfaceHighest = Color(0xFF262626);
-  static const Color surfaceVariant = Color(0xFF262626);
-  static const Color surfaceBright = Color(0xFF2C2C2C);
+  // Tonal Surfaces (Enhanced for visibility)
+  static const Color surfaceLow = Color(0xFF141417);
+  static const Color surfaceContainer = Color(0xFF1C1C1F);
+  static const Color surfaceHighest = Color(0xFF2C2C2F);
+  static const Color surfaceVariant = Color(0xFF2C2C2F);
+  static const Color surfaceBright = Color(0xFF323235);
   
   // Brand Colors
   static const Color primary = Color(0xFFA5A5FF);
@@ -22,9 +22,9 @@ class AppColors {
   
   // Content Colors
   static const Color onSurface = Color(0xFFFFFFFF);
-  static const Color onSurfaceVariant = Color(0xFFADAAAA);
-  static const Color outline = Color(0xFF767575);
-  static const Color outlineVariant = Color(0x26484847); // 15% opacity as per "Ghost Border" rule
+  static const Color onSurfaceVariant = Color(0xFFB0B0B5);
+  static const Color outline = Color(0xFF48484A);
+  static const Color outlineVariant = Color(0x6048484A); // Increased to ~37% opacity
   static const Color lightOutlineVariant = Color(0x1F000000); // 12% Black for Light Mode
 
   // Light Mode Palette

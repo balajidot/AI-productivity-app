@@ -7,6 +7,7 @@ import '../providers/app_providers.dart';
 import '../models/message_model.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/ai_action_card.dart';
 
 class AIAssistantScreen extends ConsumerStatefulWidget {
   const AIAssistantScreen({super.key});
@@ -46,6 +47,20 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
     final theme = Theme.of(context);
     final messages = ref.watch(chatProvider);
     final isLoading = ref.watch(aiLoadingProvider);
+    final isLowPerformance = ref.watch(performanceModeProvider);
+
+    // Auto-scroll when new chunks arrive
+    ref.listen(chatProvider, (previous, next) {
+      if (next.isNotEmpty && next.last.role == MessageRole.assistant) {
+        if (previous == null || previous.isEmpty || previous.last.text != next.last.text) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+               _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+            }
+          });
+        }
+      }
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -64,7 +79,9 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
                           return _buildTypingIndicator(theme);
                         }
                         final msg = messages[index];
-                        return _buildChatBubble(context, theme, msg)
+                        final bubble = _buildChatBubble(context, theme, msg);
+                        if (isLowPerformance) return bubble;
+                        return bubble
                             .animate()
                             .fadeIn(duration: 300.ms)
                             .slideY(begin: 0.03);
@@ -170,6 +187,15 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
                 ),
               ),
             ),
+            if (message.actions != null && message.actions!.isNotEmpty) 
+              Column(
+                children: message.actions!.map((action) => AIActionCard(
+                  messageId: message.id,
+                  action: action,
+                  onApprove: (mId, aId) => ref.read(chatProvider.notifier).executeAction(mId, aId),
+                  onReject: (mId, aId) => ref.read(chatProvider.notifier).rejectAction(mId, aId),
+                )).toList(),
+              ),
             const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -297,7 +323,6 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
           EmptyStateWidget(
             title: 'Hi $userName! 👋',
             description: 'I can help you manage tasks, plan your day, and boost productivity.',
-            imagePath: 'assets/images/empty_ai.png',
           ),
           const SizedBox(height: 12),
           const SizedBox(height: 32),

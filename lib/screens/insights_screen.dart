@@ -11,6 +11,7 @@ class InsightsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isLowPerformance = ref.watch(performanceModeProvider);
     final metrics = ref.watch(productivityMetricsProvider);
     final weeklyProgress = metrics['weeklyProgress'] as List<double>;
     final categoryDist = metrics['categoryDistribution'] as Map<String, double>;
@@ -40,11 +41,11 @@ class InsightsScreen extends ConsumerWidget {
                 '${metrics['totalHours']}h', 
                 '${metrics['growth']}%', 
                 LucideIcons.clock,
-                isGrowth: double.parse(metrics['growth']) >= 0,
+                isGrowth: (double.tryParse(metrics['growth'] ?? '0') ?? 0) >= 0,
               ),
               const SizedBox(height: 24),
               
-              _buildChartSection(context, theme, weeklyProgress),
+              _buildChartSection(context, theme, weeklyProgress, isLowPerformance),
               const SizedBox(height: 32),
               
               _buildAIRecommendation(context, theme, metrics),
@@ -112,7 +113,7 @@ class InsightsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildChartSection(BuildContext context, ThemeData theme, List<double> values) {
+  Widget _buildChartSection(BuildContext context, ThemeData theme, List<double> values, bool isLowPerformance) {
     // Generate spots from values
     final spots = values.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList();
 
@@ -124,6 +125,7 @@ class InsightsScreen extends ConsumerWidget {
         SizedBox(
           height: 180,
           child: LineChart(
+            duration: isLowPerformance ? Duration.zero : const Duration(milliseconds: 250),
             LineChartData(
               gridData: const FlGridData(show: false),
               titlesData: const FlTitlesData(show: false),
@@ -136,7 +138,7 @@ class InsightsScreen extends ConsumerWidget {
                   barWidth: 4,
                   isStrokeCapRound: true,
                   dotData: FlDotData(
-                    show: true,
+                    show: !isLowPerformance,
                     getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
                       radius: 4,
                       color: theme.colorScheme.surface,
@@ -145,7 +147,7 @@ class InsightsScreen extends ConsumerWidget {
                     ),
                   ),
                   belowBarData: BarAreaData(
-                    show: true,
+                    show: !isLowPerformance,
                     gradient: LinearGradient(
                       colors: [
                         theme.colorScheme.primary.withValues(alpha: 0.2),

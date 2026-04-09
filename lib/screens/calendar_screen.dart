@@ -239,12 +239,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       return a.time!.compareTo(b.time!);
     });
 
+    final isLowPerformance = ref.watch(performanceModeProvider);
+
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       itemCount: sortedTasks.length,
       itemBuilder: (context, index) {
         final task = sortedTasks[index];
-        return _buildTimelineItem(theme, task, index == sortedTasks.length - 1)
+        final item = _buildTimelineItem(theme, task, index == sortedTasks.length - 1);
+        if (isLowPerformance) return item;
+        return item
             .animate()
             .fadeIn(delay: (index * 60).ms)
             .slideX(begin: 0.05);

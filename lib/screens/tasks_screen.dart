@@ -36,6 +36,8 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLowPerformance = ref.watch(performanceModeProvider);
+    
     final selectedCategory = ref.watch(selectedCategoryProvider);
     final overdueTasks = ref.watch(overdueTasksProvider);
     final todayTasks = ref.watch(todayTasksProvider);
@@ -51,90 +53,153 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context, theme),
-            if (_isSearching) _buildSearchBar(context, theme),
-            _buildFilterTabs(context, theme, selectedCategory),
-            Expanded(
-              child: allEmpty
-                  ? EmptyStateWidget(
-                      title: 'All clear for now',
-                      description: 'Your productivity is peak performance. Tap + to add a new challenge.',
-                      imagePath: 'assets/images/empty_tasks.png',
-                      onActionPressed: _showAddTaskModal,
-                      actionLabel: 'Add New Task',
-                    )
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+        child: RepaintBoundary(
+          child: Column(
+            children: [
+              RepaintBoundary(child: _buildHeader(context, theme)),
+              if (_isSearching) _buildSearchBar(context, theme),
+              RepaintBoundary(child: _buildFilterTabs(context, theme, selectedCategory)),
+              Expanded(
+                child: allEmpty
+                    ? EmptyStateWidget(
+                        title: 'All clear for now',
+                        description: 'Your productivity is peak performance. Tap + to add a new challenge.',
+                        onActionPressed: _showAddTaskModal,
+                        actionLabel: 'Add New Task',
+                      )
+                    : CustomScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        slivers: [
+                          const SliverPadding(padding: EdgeInsets.only(top: 8)),
+                          
                           // Overdue Section
                           if (overdueTasks.isNotEmpty) ...[
-                            SectionHeader(title: 'Overdue', color: theme.colorScheme.error, count: overdueTasks.length),
-                            ...overdueTasks.asMap().entries.map((e) =>
-                                TaskCard(
-                                  task: e.value, 
-                                  isOverdue: true,
-                                  onTap: () => _showEditTaskSheet(context, e.value),
-                                )
-                                .animate()
-                                .fadeIn(delay: (e.key * 40).ms)
-                                .slideX(begin: -0.05)),
-                            const SizedBox(height: 16),
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: SectionHeader(title: 'Overdue', color: theme.colorScheme.error, count: overdueTasks.length),
+                              ),
+                            ),
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final task = overdueTasks[index];
+                                    final card = TaskCard(
+                                      task: task, 
+                                      isOverdue: true,
+                                      onTap: () => _showEditTaskSheet(context, task),
+                                    );
+                                    if (isLowPerformance) return card;
+                                    return card.animate().fadeIn(delay: (index * 40).ms).slideX(begin: -0.05);
+                                  },
+                                  childCount: overdueTasks.length,
+                                ),
+                              ),
+                            ),
+                            const SliverToBoxAdapter(child: SizedBox(height: 16)),
                           ],
+  
                           // Today Section
                           if (todayTasks.isNotEmpty) ...[
-                            SectionHeader(title: 'Today', color: theme.colorScheme.primary, count: todayTasks.length),
-                            ...todayTasks.asMap().entries.map((e) =>
-                                TaskCard(
-                                  task: e.value,
-                                  onTap: () => _showEditTaskSheet(context, e.value),
-                                )
-                                .animate()
-                                .fadeIn(delay: (e.key * 40).ms)
-                                .slideY(begin: 0.05)),
-                            const SizedBox(height: 16),
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: SectionHeader(title: 'Today', color: theme.colorScheme.primary, count: todayTasks.length),
+                              ),
+                            ),
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final task = todayTasks[index];
+                                    final card = TaskCard(
+                                      task: task,
+                                      onTap: () => _showEditTaskSheet(context, task),
+                                    );
+                                    if (isLowPerformance) return card;
+                                    return card.animate().fadeIn(delay: (index * 40).ms).slideY(begin: 0.05);
+                                  },
+                                  childCount: todayTasks.length,
+                                ),
+                              ),
+                            ),
+                            const SliverToBoxAdapter(child: SizedBox(height: 16)),
                           ],
+  
                           // Tomorrow Section
                           if (tomorrowTasks.isNotEmpty) ...[
-                            SectionHeader(title: 'Tomorrow', color: theme.colorScheme.secondary, count: tomorrowTasks.length),
-                            ...tomorrowTasks.asMap().entries.map((e) =>
-                                TaskCard(
-                                  task: e.value,
-                                  onTap: () => _showEditTaskSheet(context, e.value),
-                                )
-                                .animate()
-                                .fadeIn(delay: (e.key * 40).ms)
-                                .slideY(begin: 0.05)),
-                            const SizedBox(height: 16),
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: SectionHeader(title: 'Tomorrow', color: theme.colorScheme.secondary, count: tomorrowTasks.length),
+                              ),
+                            ),
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final task = tomorrowTasks[index];
+                                    final card = TaskCard(
+                                      task: task,
+                                      onTap: () => _showEditTaskSheet(context, task),
+                                    );
+                                    if (isLowPerformance) return card;
+                                    return card.animate().fadeIn(delay: (index * 40).ms).slideY(begin: 0.05);
+                                  },
+                                  childCount: tomorrowTasks.length,
+                                ),
+                              ),
+                            ),
+                            const SliverToBoxAdapter(child: SizedBox(height: 16)),
                           ],
+  
                           // Upcoming Section
                           if (upcomingTasks.isNotEmpty) ...[
-                            SectionHeader(title: 'Upcoming', color: theme.colorScheme.onSurfaceVariant, count: upcomingTasks.length),
-                            ...upcomingTasks.asMap().entries.map((e) =>
-                                TaskCard(
-                                  task: e.value,
-                                  onTap: () => _showEditTaskSheet(context, e.value),
-                                )
-                                .animate()
-                                .fadeIn(delay: (e.key * 40).ms)
-                                .slideY(begin: 0.05)),
-                            const SizedBox(height: 16),
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: SectionHeader(title: 'Upcoming', color: theme.colorScheme.onSurfaceVariant, count: upcomingTasks.length),
+                              ),
+                            ),
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final task = upcomingTasks[index];
+                                    final card = TaskCard(
+                                      task: task,
+                                      onTap: () => _showEditTaskSheet(context, task),
+                                    );
+                                    if (isLowPerformance) return card;
+                                    return card.animate().fadeIn(delay: (index * 40).ms).slideY(begin: 0.05);
+                                  },
+                                  childCount: upcomingTasks.length,
+                                ),
+                              ),
+                            ),
+                            const SliverToBoxAdapter(child: SizedBox(height: 16)),
                           ],
-                          
+  
                           // Completed Section
-                          if (completedTasks.isNotEmpty) ...[
-                            _buildCompletedSection(context, theme, completedTasks),
-                          ],
-
-                          const SizedBox(height: 80),
+                          if (completedTasks.isNotEmpty)
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              sliver: SliverToBoxAdapter(
+                                child: _buildCompletedSection(context, theme, completedTasks, isLowPerformance),
+                              ),
+                            ),
+  
+                          const SliverToBoxAdapter(child: SizedBox(height: 100)),
                         ],
                       ),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -304,7 +369,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     );
   }
 
-  Widget _buildCompletedSection(BuildContext context, ThemeData theme, List<Task> tasks) {
+  Widget _buildCompletedSection(BuildContext context, ThemeData theme, List<Task> tasks, bool isLowPerformance) {
     return Column(
       children: [
         InkWell(
@@ -350,14 +415,16 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         ),
         if (_isCompletedExpanded) ...[
           const SizedBox(height: 8),
-          ...tasks.asMap().entries.map((e) =>
-              TaskCard(
-                task: e.value,
-                onTap: () => _showEditTaskSheet(context, e.value),
-              )
-              .animate()
+          ...tasks.asMap().entries.map((e) {
+            final card = TaskCard(
+              task: e.value,
+              onTap: () => _showEditTaskSheet(context, e.value),
+            );
+            if (isLowPerformance) return card;
+            return card.animate()
               .fadeIn(delay: (e.key * 30).ms)
-              .slideY(begin: 0.02)),
+              .slideY(begin: 0.02);
+          }),
         ],
       ],
     );

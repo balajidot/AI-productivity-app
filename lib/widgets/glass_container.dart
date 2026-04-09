@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/app_providers.dart';
 
-class GlassContainer extends StatelessWidget {
+class GlassContainer extends ConsumerWidget {
   static const bool enableBlur = true; // Global toggle for performance tuning
 
   final Widget child;
@@ -24,20 +26,21 @@ class GlassContainer extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isLowPerformance = ref.watch(performanceModeProvider);
 
     // Background colors
     Widget content = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: (color ?? theme.colorScheme.surfaceContainer).withValues(alpha: opacity),
+        color: (color ?? theme.colorScheme.surfaceContainer).withValues(alpha: isLowPerformance ? opacity + 0.15 : opacity),
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.1),
-          width: 0.5,
+          color: theme.colorScheme.outlineVariant.withValues(alpha: isLowPerformance ? 0.8 : 0.6),
+          width: 1.0,
         ),
-        boxShadow: [
+        boxShadow: isLowPerformance ? null : [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
@@ -47,29 +50,30 @@ class GlassContainer extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Subtle inner highlight
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(borderRadius),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.08),
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.02),
-                  ],
+          // Subtle inner highlight - hidden in low performance mode to save draw calls
+          if (!isLowPerformance)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(borderRadius),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.08),
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.02),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
           child,
         ],
       ),
     );
 
-    if (!enableBlur || !useBlur || blur <= 0) {
+    if (isLowPerformance || !enableBlur || !useBlur || blur <= 0) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: content,

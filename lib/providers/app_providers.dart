@@ -1,6 +1,9 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_models.dart';
 import '../models/message_model.dart';
+import '../models/ai_action_model.dart';
 import '../services/ai_service.dart';
 import '../services/notification_service.dart';
 import '../config/secrets.dart';
@@ -47,6 +50,17 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
   void updateAITone(String value) => state = state.copyWith(aiTone: value);
   void updateTheme(String value) => state = state.copyWith(themeMode: value);
 }
+
+final performanceModeProvider = Provider<bool>((ref) {
+  // WhatsApp-style automatic optimization: 
+  // Detect if the device is lower-end (4 or fewer cores)
+  // Devices with <= 4 cores will use a simplified "Optimized UI" for speed and battery.
+  try {
+    return Platform.numberOfProcessors <= 4;
+  } catch (_) {
+    return false; // Safely default to high performance if detection fails
+  }
+});
 
 // Real-time Cloud Streams
 final tasksStreamProvider = StreamProvider<List<Task>>((ref) {
@@ -419,54 +433,230 @@ class AILoadingNotifier extends Notifier<bool> {
 }
 
 class ChatNotifier extends Notifier<List<AIMessage>> {
+  bool _isGenerating = false;
+
   @override
   List<AIMessage> build() {
-    return ref.watch(messagesStreamProvider).value ?? [];
+    // Listen to real-time updates from Firestore but only merge when not active
+    // this prevents the "flicker/disappear" issue during AI generation.
+    ref.listen(messagesStreamProvider, (prev, next) {
+      if (!_isGenerating) {
+        final newMessages = next.value ?? [];
+        if (newMessages.isNotEmpty) {
+           state = newMessages;
+        }
+      }
+    });
+
+    return ref.read(messagesStreamProvider).value ?? [];
   }
 
   FirestoreService? get _firestore => ref.read(firestoreServiceProvider);
   AIService get _ai => ref.read(aiServiceProvider);
 
   Future<void> sendMessage(String text) async {
+    if (text.trim().isEmpty) return;
+    
+    _isGenerating = true;
     final userMsg = AIMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       text: text,
       role: MessageRole.user,
       timestamp: DateTime.now(),
     );
-    
+
+    // Update local state immediately
     state = [...state, userMsg];
     _firestore?.saveMessage(userMsg).ignore();
 
-    // Set loading state
+    // Set loading state and immediately add placeholder
     ref.read(aiLoadingProvider.notifier).set(true);
+    final aiMsgId = (DateTime.now().millisecondsSinceEpoch + 1).toString();
+    const String placeholder = 'Obsidian is thinking deeper...';
+    
+    final initialAiMsg = AIMessage(
+      id: aiMsgId,
+      text: placeholder,
+      role: MessageRole.assistant,
+      timestamp: DateTime.now(),
+    );
+    state = [...state, initialAiMsg];
 
     try {
-      // Get tasks for context
+      // ... same context building as before ...
       final tasks = ref.read(tasksProvider);
-      final response = await _ai.getChatResponse(text, tasks: tasks);
+      final stats = ref.read(taskStatsProvider);
+      final habits = ref.read(habitsProvider);
       
-      final aiMsg = AIMessage(
-        id: (DateTime.now().millisecondsSinceEpoch + 1).toString(),
-        text: response,
-        role: MessageRole.assistant,
-        timestamp: DateTime.now(),
-      );
+      final extraContext = '''
+User Stats:
+- Total Tasks: ${stats['total']}
+- Completed Today: ${stats['todayCompleted']}/${stats['todayTotal']}
+- Pending Today: ${stats['todayPending']}
+- Overdue: ${stats['overdue']}
 
-      state = [...state, aiMsg];
-      _firestore?.saveMessage(aiMsg).ignore();
+Habits Streaks:
+${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: ${h.streak} day streak").join('\n')}
+''';
+
+      final stream = _ai.getChatStream(text, tasks: tasks, extraContext: extraContext);
+      
+      bool hasData = false;
+      await for (final result in stream) {
+        hasData = true;
+        state = [
+          for (final m in state)
+            if (m.id == aiMsgId) 
+              AIMessage(
+                id: m.id,
+                text: result.text.isEmpty ? "Processing request..." : result.text,
+                role: m.role,
+                timestamp: m.timestamp,
+                actions: result.actions,
+              )
+            else m
+        ];
+      }
+
+      if (!hasData) {
+         throw Exception("No response received from any AI model.");
+      }
+
+      // Save finally
+      final finalMsg = state.firstWhere((m) => m.id == aiMsgId);
+      _firestore?.saveMessage(finalMsg).ignore();
     } catch (e) {
-      final errorMsg = AIMessage(
-        id: (DateTime.now().millisecondsSinceEpoch + 1).toString(),
-        text: "Sorry, couldn't connect to AI. Please try again.",
-        role: MessageRole.assistant,
-        timestamp: DateTime.now(),
-      );
-      state = [...state, errorMsg];
-      _firestore?.saveMessage(errorMsg).ignore();
+      debugPrint('AI Chat Error: $e');
+      
+      // Update the placeholder message with error
+      state = [
+        for (final m in state)
+          if (m.id == aiMsgId && (m.text == placeholder || m.text.contains("Processing"))) 
+            AIMessage(
+              id: m.id,
+              text: "Could not get a response. Please check your internet connection or try a different question. ($e)",
+              role: MessageRole.assistant,
+              timestamp: DateTime.now(),
+            )
+          else m
+      ];
     } finally {
+      _isGenerating = false;
       ref.read(aiLoadingProvider.notifier).set(false);
     }
+  }
+
+  Future<void> executeAction(String messageId, String actionId) async {
+    final msgIndex = state.indexWhere((m) => m.id == messageId);
+    if (msgIndex == -1) return;
+
+    final msg = state[msgIndex];
+    if (msg.actions == null) return;
+
+    final actionIndex = msg.actions!.indexWhere((a) => a.id == actionId);
+    if (actionIndex == -1) return;
+
+    final action = msg.actions![actionIndex];
+    if (action.isExecuted) return;
+
+    // Execute based on type
+    try {
+      switch (action.type) {
+        case AIActionType.createTask:
+          final p = action.parameters;
+          final newTask = Task(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            title: p['title']?.toString() ?? 'New Task',
+            date: DateTime.tryParse(p['date']?.toString() ?? '') ?? DateTime.now(),
+            time: p['time']?.toString(),
+            priority: TaskPriority.values[(p['priority'] as int? ?? 1).clamp(0, 2)],
+            category: p['category']?.toString() ?? 'Inbox',
+          );
+          await ref.read(tasksProvider.notifier).addTask(newTask);
+          break;
+        case AIActionType.updateTask:
+          final p = action.parameters;
+          final taskId = p['id']?.toString();
+          if (taskId != null) {
+             final tasks = ref.read(tasksProvider);
+             final task = tasks.firstWhere((t) => t.id == taskId);
+             final updatedTask = task.copyWith(
+               title: p['title']?.toString(),
+               status: p['status'] == 'completed' ? TaskStatus.completed : 
+                       (p['status'] == 'inProgress' ? TaskStatus.inProgress : TaskStatus.todo),
+               priority: p['priority'] != null ? TaskPriority.values[(p['priority'] as int).clamp(0, 2)] : null,
+             );
+             await ref.read(tasksProvider.notifier).updateTask(updatedTask);
+          }
+          break;
+        default:
+          break;
+      }
+
+      // Mark as executed in UI state
+      final updatedAction = AIAction(
+        id: action.id,
+        type: action.type,
+        parameters: action.parameters,
+        isExecuted: true,
+      );
+
+      final updatedActions = List<AIAction>.from(msg.actions!);
+      updatedActions[actionIndex] = updatedAction;
+
+      final updatedMsg = AIMessage(
+        id: msg.id,
+        text: msg.text,
+        role: msg.role,
+        timestamp: msg.timestamp,
+        actions: updatedActions,
+      );
+
+      state = [
+        for (final m in state)
+          if (m.id == messageId) updatedMsg else m
+      ];
+      _firestore?.saveMessage(updatedMsg).ignore();
+    } catch (e) {
+      debugPrint('Action Execution Failed: $e');
+    }
+  }
+
+  Future<void> rejectAction(String messageId, String actionId) async {
+    final msgIndex = state.indexWhere((m) => m.id == messageId);
+    if (msgIndex == -1) return;
+
+    final msg = state[msgIndex];
+    if (msg.actions == null) return;
+
+    final actionIndex = msg.actions!.indexWhere((a) => a.id == actionId);
+    if (actionIndex == -1) return;
+
+    final action = msg.actions![actionIndex];
+    
+    final updatedAction = AIAction(
+      id: action.id,
+      type: action.type,
+      parameters: action.parameters,
+      isRejected: true,
+    );
+
+    final updatedActions = List<AIAction>.from(msg.actions!);
+    updatedActions[actionIndex] = updatedAction;
+
+    final updatedMsg = AIMessage(
+      id: msg.id,
+      text: msg.text,
+      role: msg.role,
+      timestamp: msg.timestamp,
+      actions: updatedActions,
+    );
+
+    state = [
+      for (final m in state)
+        if (m.id == messageId) updatedMsg else m
+    ];
+    _firestore?.saveMessage(updatedMsg).ignore();
   }
 
   Future<void> clearChat() async {
