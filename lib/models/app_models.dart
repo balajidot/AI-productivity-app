@@ -40,15 +40,15 @@ class Task {
 
   factory Task.fromMap(Map<String, dynamic> map) {
     return Task(
-      id: map['id'],
-      title: map['title'],
-      description: map['description'],
-      date: DateTime.parse(map['date']),
-      time: map['time'],
-      priority: TaskPriority.values[map['priority']],
-      category: map['category'],
-      status: TaskStatus.values[map['status']],
-      recurrence: map['recurrence'],
+      id: map['id']?.toString() ?? '',
+      title: map['title']?.toString() ?? 'No Title',
+      description: map['description']?.toString(),
+      date: map['date'] != null ? DateTime.tryParse(map['date'].toString()) ?? DateTime.now() : DateTime.now(),
+      time: map['time']?.toString(),
+      priority: TaskPriority.values[(map['priority'] as int? ?? 1).clamp(0, 2)],
+      category: map['category']?.toString() ?? 'Inbox',
+      status: TaskStatus.values[(map['status'] as int? ?? 0).clamp(0, 2)],
+      recurrence: map['recurrence']?.toString(),
     );
   }
 
@@ -124,16 +124,20 @@ class Habit {
   }
 
   factory Habit.fromMap(Map<String, dynamic> map) {
+    List<DateTime> dates = [];
+    final rawDates = map['completedDates'];
+    if (rawDates is String && rawDates.isNotEmpty) {
+      dates = rawDates.split(',').map((s) => DateTime.tryParse(s)).whereType<DateTime>().toList();
+    } else if (rawDates is List) {
+      dates = rawDates.map((s) => DateTime.tryParse(s.toString())).whereType<DateTime>().toList();
+    }
+
     return Habit(
-      id: map['id'],
-      name: map['name'],
-      icon: map['icon'],
-      streak: map['streak'],
-      completedDates: (map['completedDates'] as String)
-          .split(',')
-          .where((s) => s.isNotEmpty)
-          .map((s) => DateTime.parse(s))
-          .toList(),
+      id: map['id']?.toString() ?? '',
+      name: map['name']?.toString() ?? 'New Habit',
+      icon: map['icon']?.toString() ?? 'star',
+      streak: map['streak'] as int? ?? 0,
+      completedDates: dates,
     );
   }
 }

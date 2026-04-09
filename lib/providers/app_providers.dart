@@ -1,22 +1,52 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_models.dart';
 import '../models/message_model.dart';
-import '../services/storage_service.dart';
 import '../services/ai_service.dart';
 import '../services/notification_service.dart';
-import '../services/user_preferences.dart';
 import '../config/secrets.dart';
+import 'auth_provider.dart';
+import '../services/firestore_service.dart';
 
 // Services
-final storageServiceProvider = Provider((ref) => StorageService());
+final firestoreServiceProvider = Provider<FirestoreService?>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return null;
+  return FirestoreService(uid: user.uid);
+});
+
 final aiServiceProvider = Provider((ref) => AIService(
   geminiApiKey: Secrets.geminiApiKey,
   nvidiaApiKey: Secrets.nvidiaApiKey,
 ));
 
-// User Name Provider
-final userNameProvider = FutureProvider<String>((ref) async {
-  return await UserPreferences.getUserName();
+// User Profile Providers
+final userNameProvider = Provider<String>((ref) {
+  final user = ref.watch(currentUserProvider);
+  return user?.displayName ?? 'User';
+});
+
+final userPhotoProvider = Provider<String?>((ref) {
+  final user = ref.watch(currentUserProvider);
+  return user?.photoURL;
+});
+
+// Real-time Cloud Streams
+final tasksStreamProvider = StreamProvider<List<Task>>((ref) {
+  final firestore = ref.watch(firestoreServiceProvider);
+  if (firestore == null) return Stream.value([]);
+  return firestore.getTasks();
+});
+
+final habitsStreamProvider = StreamProvider<List<Habit>>((ref) {
+  final firestore = ref.watch(firestoreServiceProvider);
+  if (firestore == null) return Stream.value([]);
+  return firestore.getHabits();
+});
+
+final messagesStreamProvider = StreamProvider<List<AIMessage>>((ref) {
+  final firestore = ref.watch(firestoreServiceProvider);
+  if (firestore == null) return Stream.value([]);
+  return firestore.getMessages();
 });
 
 // Category Filter
@@ -165,18 +195,12 @@ final productivityMetricsProvider = Provider<Map<String, dynamic>>((ref) {
 });
 
 class TaskNotifier extends Notifier<List<Task>> {
-  late final StorageService _storage;
-
   @override
   List<Task> build() {
-    _storage = ref.watch(storageServiceProvider);
-    loadTasks();
-    return [];
+    return ref.watch(tasksStreamProvider).value ?? [];
   }
 
-  Future<void> loadTasks() async {
-    state = await _storage.getTasks();
-  }
+  FirestoreService? get _firestore => ref.read(firestoreServiceProvider);
 
   int _getNotificationId(String taskId) {
     // Convert taskId string to a stable 32-bit integer for notifications
@@ -223,8 +247,8 @@ class TaskNotifier extends Notifier<List<Task>> {
     // Optimistic Update: Add to UI immediately
     state = [...state, task];
     
-    // Save to DB in background
-    _storage.insertTask(task).ignore();
+    // Save to Cloud
+    _firestore?.saveTask(task).ignore();
     
     // Schedule reminder
     _scheduleReminderForTask(task).ignore();
@@ -237,9 +261,9 @@ class TaskNotifier extends Notifier<List<Task>> {
         if (t.id == task.id) task else t
     ];
     
-    // Commmit to DB and handle notifications in background
+    // Commmit to Cloud and handle notifications in background
     _cancelReminderForTask(task.id).then((_) {
-      _storage.updateTask(task).ignore();
+      _firestore?.saveTask(task).ignore();
       _scheduleReminderForTask(task).ignore();
     });
   }
@@ -261,8 +285,8 @@ class TaskNotifier extends Notifier<List<Task>> {
         if (t.id == id) updatedTask else t
     ];
     
-    // Background sync
-    _storage.updateTask(updatedTask).ignore();
+    // Cloud sync
+    _firestore?.saveTask(updatedTask).ignore();
     
     if (isCompleting) {
       _cancelReminderForTask(id).ignore();
@@ -279,7 +303,54 @@ class TaskNotifier extends Notifier<List<Task>> {
     
     // Background cleanup
     _cancelReminderForTask(id).ignore();
-    _storage.deleteTask(id).ignore();
+    _firestore?.deleteTask(id).ignore();
+  }
+}
+
+// Habits Provider
+final habitsProvider = NotifierProvider<HabitNotifier, List<Habit>>(HabitNotifier.new);
+
+class HabitNotifier extends Notifier<List<Habit>> {
+  @override
+  List<Habit> build() {
+    return ref.watch(habitsStreamProvider).value ?? [];
+  }
+
+  FirestoreService? get _firestore => ref.read(firestoreServiceProvider);
+
+  Future<void> addHabit(Habit habit) async {
+    state = [...state, habit];
+    _firestore?.saveHabit(habit).ignore();
+  }
+
+  Future<void> toggleHabitDay(String id, DateTime date) async {
+    final habitIndex = state.indexWhere((h) => h.id == id);
+    if (habitIndex == -1) return;
+    
+    final habit = state[habitIndex];
+    final isCompleted = habit.completedDates.any((d) => 
+      d.year == date.year && d.month == date.month && d.day == date.day);
+    
+    final updatedDates = isCompleted
+        ? habit.completedDates.where((d) => 
+            !(d.year == date.year && d.month == date.month && d.day == date.day)).toList()
+        : [...habit.completedDates, date];
+    
+    final updatedHabit = Habit(
+      id: habit.id,
+      name: habit.name,
+      icon: habit.icon,
+      streak: habit.streak,
+      completedDates: updatedDates,
+    );
+
+    state = [for (final h in state) if (h.id == id) updatedHabit else h];
+    _firestore?.saveHabit(updatedHabit).ignore();
+  }
+
+  Future<void> deleteHabit(String id) async {
+    state = state.where((h) => h.id != id).toList();
+    _firestore?.deleteHabit(id).ignore();
   }
 }
 
@@ -297,20 +368,13 @@ class AILoadingNotifier extends Notifier<bool> {
 }
 
 class ChatNotifier extends Notifier<List<AIMessage>> {
-  late final AIService _ai;
-  late final StorageService _storage;
-
   @override
   List<AIMessage> build() {
-    _ai = ref.watch(aiServiceProvider);
-    _storage = ref.watch(storageServiceProvider);
-    loadMessages();
-    return [];
+    return ref.watch(messagesStreamProvider).value ?? [];
   }
 
-  Future<void> loadMessages() async {
-    state = await _storage.getMessages();
-  }
+  FirestoreService? get _firestore => ref.read(firestoreServiceProvider);
+  AIService get _ai => ref.read(aiServiceProvider);
 
   Future<void> sendMessage(String text) async {
     final userMsg = AIMessage(
@@ -321,7 +385,7 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
     );
     
     state = [...state, userMsg];
-    await _storage.insertMessage(userMsg);
+    _firestore?.saveMessage(userMsg).ignore();
 
     // Set loading state
     ref.read(aiLoadingProvider.notifier).set(true);
@@ -339,7 +403,7 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
       );
 
       state = [...state, aiMsg];
-      await _storage.insertMessage(aiMsg);
+      _firestore?.saveMessage(aiMsg).ignore();
     } catch (e) {
       final errorMsg = AIMessage(
         id: (DateTime.now().millisecondsSinceEpoch + 1).toString(),
@@ -348,13 +412,14 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
         timestamp: DateTime.now(),
       );
       state = [...state, errorMsg];
-      await _storage.insertMessage(errorMsg);
+      _firestore?.saveMessage(errorMsg).ignore();
     } finally {
       ref.read(aiLoadingProvider.notifier).set(false);
     }
   }
 
   Future<void> clearChat() async {
+    _firestore?.clearChatHistory().ignore();
     state = [];
   }
 }

@@ -7,6 +7,7 @@ import '../theme/app_colors.dart';
 import '../widgets/glass_container.dart';
 import '../providers/app_providers.dart';
 import '../models/app_models.dart';
+import '../providers/auth_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -39,16 +40,11 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userNameAsync = ref.watch(userNameProvider);
+    final userName = ref.watch(userNameProvider);
+    final userPhoto = ref.watch(userPhotoProvider);
     final stats = ref.watch(taskStatsProvider);
     final todayTasks = ref.watch(todayTasksProvider);
     final overdueTasks = ref.watch(overdueTasksProvider);
-
-    final userName = userNameAsync.when(
-      data: (name) => name,
-      loading: () => '...',
-      error: (e, _) => 'User',
-    );
 
     return Scaffold(
       body: SafeArea(
@@ -57,11 +53,59 @@ class HomeScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Greeting
-              Text(
-                '${_getGreeting()}, $userName.',
-                style: Theme.of(context).textTheme.displayLarge,
-              ).animate().fadeIn(duration: 600.ms).slideX(begin: -0.1),
+              // Header with Profile
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_getGreeting()}, $userName.',
+                          style: Theme.of(context).textTheme.displayLarge,
+                        ).animate().fadeIn(duration: 600.ms).slideX(begin: -0.1),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  GestureDetector(
+                    onTap: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Sign Out'),
+                          content: const Text('Are you sure you want to log out?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sign Out')),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        ref.read(authServiceProvider).signOut();
+                      }
+                    },
+                    child: Hero(
+                      tag: 'user_avatar',
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
+                          image: userPhoto != null 
+                            ? DecorationImage(image: NetworkImage(userPhoto), fit: BoxFit.cover)
+                            : null,
+                        ),
+                        child: userPhoto == null 
+                          ? const Icon(LucideIcons.user, color: AppColors.primary)
+                          : null,
+                      ),
+                    ),
+                  ).animate().fadeIn(delay: 200.ms).scale(),
+                ],
+              ),
               const SizedBox(height: 8),
               Text(
                 _getFocusMessage(),
@@ -123,7 +167,7 @@ class HomeScreen extends ConsumerWidget {
                           ? '🎉 Day complete! You hit your peak focus today.'
                           : 'Plan your day to stay ahead.';
                   
-                  if (growth > 0) insight = "🚀 You're ${growth}% more productive today! Keep this momentum.";
+                  if (growth > 0) insight = "🚀 You're $growth% more productive today! Keep this momentum.";
 
                   return GlassContainer(
                     color: AppColors.tertiary,

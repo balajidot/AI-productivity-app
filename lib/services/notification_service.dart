@@ -53,8 +53,8 @@ class NotificationService {
 
     await _notificationsPlugin.zonedSchedule(
       id: id,
-      title: 'டிஜிட்டல் உதவியாளர்',
-      body: 'வணக்கம், \'$title\' வேலையைத் தொடங்க வேண்டிய நேரம் இது.',
+      title: 'Obsidian AI Reminder',
+      body: 'Time to start your task: "$title"',
       scheduledDate: tzDate,
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(

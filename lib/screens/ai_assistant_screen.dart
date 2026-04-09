@@ -284,6 +284,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
   }
 
   Widget _buildWelcomeMessage(BuildContext context) {
+    final userName = ref.watch(userNameProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -299,7 +300,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            'Hi Balaji! 👋',
+            'Hi $userName! 👋',
             style: GoogleFonts.manrope(
               fontSize: 24,
               fontWeight: FontWeight.bold,

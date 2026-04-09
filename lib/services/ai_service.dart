@@ -2,6 +2,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:http/http.dart' as http;
 import '../models/app_models.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 class AIService {
   final String? geminiApiKey;
@@ -42,7 +43,7 @@ Keep responses under 150 words unless detailed explanation is needed.
           return response;
         }
       } catch (e) {
-        print('Gemini internal error, falling back to NVIDIA: $e');
+        debugPrint('Gemini internal error, falling back to NVIDIA: $e');
       }
     }
 
@@ -72,7 +73,7 @@ Keep responses under 150 words unless detailed explanation is needed.
   }
 
   Future<String> _getNvidiaChatResponse(String prompt, {List<Task>? tasks}) async {
-    print('Calling NVIDIA NIM for chat...');
+    debugPrint('Calling NVIDIA NIM for chat...');
     try {
       String contextPrompt = prompt;
       if (tasks != null && tasks.isNotEmpty) {
@@ -115,7 +116,7 @@ Keep responses under 150 words unless detailed explanation is needed.
         final task = await _parseTaskWithGemini(text);
         if (task != null) return task;
       } catch (e) {
-        print('Gemini NLP error, falling back to NVIDIA: $e');
+        debugPrint('Gemini NLP error, falling back to NVIDIA: $e');
       }
     }
 
@@ -173,7 +174,7 @@ Return ONLY a valid JSON object:
   }
 
   Future<Task?> _parseTaskWithNvidia(String text) async {
-    print('Calling NVIDIA NIM for NLP parsing...');
+    debugPrint('Calling NVIDIA NIM for NLP parsing...');
     try {
       final prompt = 'Parse this text into a JSON task: "$text". Date today: ${DateTime.now().toString().split(' ')[0]}. Return ONLY raw JSON like {"title":"...","date":"YYYY-MM-DD","time":"HH:mm" or null,"priority":0/1/2,"category":"..."}.';
       
@@ -198,7 +199,7 @@ Return ONLY a valid JSON object:
         return _jsonToTask(content, text);
       }
     } catch (e) {
-      print('Nvidia Parsing Error: $e');
+      debugPrint('Nvidia Parsing Error: $e');
     }
     return null;
   }
@@ -245,7 +246,7 @@ Return ONLY a valid JSON object:
         recurrence: parsed['recurrence']?.toString(),
       );
     } catch (e) {
-      print('JSON Parsing failed: $e. Response was: $responseText');
+      debugPrint('JSON Parsing failed: $e. Response was: $responseText');
       return null;
     }
   }

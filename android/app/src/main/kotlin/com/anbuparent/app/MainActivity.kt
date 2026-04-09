@@ -1,4 +1,4 @@
-package com.example.ai_productivity_assistant
+package com.anbuparent.app
 
 import io.flutter.embedding.android.FlutterActivity
 

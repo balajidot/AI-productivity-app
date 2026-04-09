@@ -24,10 +24,12 @@ class AIMessage {
 
   factory AIMessage.fromMap(Map<String, dynamic> map) {
     return AIMessage(
-      id: map['id'],
-      text: map['text'],
-      role: MessageRole.values[map['role']],
-      timestamp: DateTime.parse(map['timestamp']),
+      id: map['id']?.toString() ?? '',
+      text: map['text']?.toString() ?? '',
+      role: MessageRole.values[(map['role'] as int? ?? 1).clamp(0, 1)],
+      timestamp: map['timestamp'] != null 
+          ? DateTime.tryParse(map['timestamp'].toString()) ?? DateTime.now() 
+          : DateTime.now(),
     );
   }
 }
