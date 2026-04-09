@@ -56,10 +56,16 @@ app.*.map.json
 # Firebase & Services
 google-services.json
 GoogleService-Info.plist
+service-account.json
 
 # Environment & Secrets
 .env*
 lib/config/secrets.dart
+
+# Node.js (for MCP bridge)
+node_modules/
+dist/
+*.tsbuildinfo
 
 # Logs
 errors.txt

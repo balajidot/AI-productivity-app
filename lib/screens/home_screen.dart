@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_container.dart';
 import '../providers/app_providers.dart';
+import '../providers/ai_suggestions_provider.dart';
 import '../widgets/task_card.dart';
 import '../widgets/section_header.dart';
 import 'settings_screen.dart';
@@ -65,7 +66,7 @@ class HomeScreen extends ConsumerWidget {
                   delegate: SliverChildListDelegate([
                     // Header with Profile
                     RepaintBoundary(
-                      child: _buildHeader(context, theme, userName, userPhoto, isLowPerformance),
+                      child: _buildHeader(context, theme, userName, userPhoto, isLowPerformance, ref),
                     ),
                     const SizedBox(height: 8),
                     
@@ -142,11 +143,11 @@ class HomeScreen extends ConsumerWidget {
           
                     const SizedBox(height: 32),
           
-                    // AI Insight Card
+                    // Smart AI Suggestions
                     _maybeAnimate(
                       isLowPerformance,
                       RepaintBoundary(
-                        child: _buildAIInsightCard(theme, stats, ref),
+                        child: _buildAISuggestionsCarousel(context, theme, ref),
                       ),
                       delay: 400.ms,
                     ),
@@ -289,7 +290,7 @@ class HomeScreen extends ConsumerWidget {
     return anim;
   }
 
-  Widget _buildHeader(BuildContext context, ThemeData theme, String name, String? photo, bool isLowPerformance) {
+  Widget _buildHeader(BuildContext context, ThemeData theme, String name, String? photo, bool isLowPerformance, WidgetRef ref) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -310,6 +311,26 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(width: 16),
+        // Magic Wand
+        _maybeAnimate(
+          isLowPerformance,
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.mediumImpact();
+              ref.read(chatProvider.notifier).sendMessage("Analyze my current day and suggest optimizations.");
+              ref.read(navigationProvider.notifier).set(3); // Switch to AI tab
+            },
+            child: GlassContainer(
+              padding: const EdgeInsets.all(10),
+              borderRadius: 14,
+              color: theme.colorScheme.tertiary,
+              opacity: 0.15,
+              child: Icon(LucideIcons.sparkles, color: theme.colorScheme.tertiary, size: 22),
+            ),
+          ),
+          delay: 100.ms,
+        ),
+        const SizedBox(width: 12),
         GestureDetector(
           onTap: () {
             Navigator.push(
@@ -389,7 +410,101 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildAISuggestionsCarousel(BuildContext context, ThemeData theme, WidgetRef ref) {
+    final suggestions = ref.watch(aiSuggestionsProvider);
+    if (suggestions.isEmpty) {
+      // Return a basic fallback or the old insight card style if empty
+      return _buildAIInsightCard(theme, ref.read(taskStatsProvider), ref);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(LucideIcons.sparkles, size: 16, color: theme.colorScheme.tertiary),
+            const SizedBox(width: 8),
+            Text(
+              'Obsidian Insights',
+              style: GoogleFonts.manrope(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                color: theme.colorScheme.tertiary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 110,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            itemCount: suggestions.length,
+            itemBuilder: (context, index) {
+              final suggestion = suggestions[index];
+              return Container(
+                width: MediaQuery.of(context).size.width * 0.75,
+                margin: const EdgeInsets.only(right: 12),
+                child: GlassContainer(
+                  color: theme.colorScheme.surfaceContainer,
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(suggestion.icon as IconData? ?? LucideIcons.zap, color: theme.colorScheme.primary, size: 20),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              suggestion.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              suggestion.description,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (suggestion.action != null)
+                        IconButton(
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            // Logic to bypass approval if it's a "Safe" suggestion or just ask
+                            ref.read(chatProvider.notifier).sendMessage("I want to: ${suggestion.title}");
+                            ref.read(navigationProvider.notifier).set(3);
+                          },
+                          icon: Icon(LucideIcons.arrowRight, size: 18, color: theme.colorScheme.primary),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAIInsightCard(ThemeData theme, Map<String, int> stats, WidgetRef ref) {
+    // ... existed code ...
     final metrics = ref.watch(productivityMetricsProvider);
     final growth = double.tryParse(metrics['growth'] ?? '0.0') ?? 0.0;
     

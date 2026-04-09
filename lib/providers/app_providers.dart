@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_models.dart';
 import '../models/message_model.dart';
 import '../models/ai_action_model.dart';
@@ -17,10 +19,13 @@ final firestoreServiceProvider = Provider<FirestoreService?>((ref) {
   return FirestoreService(uid: user.uid);
 });
 
-final aiServiceProvider = Provider((ref) => AIService(
-  geminiApiKey: Secrets.geminiApiKey,
-  nvidiaApiKey: Secrets.nvidiaApiKey,
-));
+final aiServiceProvider = Provider((ref) {
+  return AIService(
+    geminiApiKey: Secrets.geminiApiKey,
+    nvidiaApiKey: Secrets.nvidiaApiKey,
+    groqApiKey: Secrets.groqApiKey,
+  );
+});
 
 // User Profile Providers
 final userNameProvider = Provider<String>((ref) {
@@ -42,13 +47,65 @@ final userEmailProvider = Provider<String>((ref) {
 final appSettingsProvider = NotifierProvider<AppSettingsNotifier, AppSettings>(AppSettingsNotifier.new);
 
 class AppSettingsNotifier extends Notifier<AppSettings> {
-  @override
-  AppSettings build() => const AppSettings();
+  static const String _settingsKey = 'app_settings_v1';
 
-  void updateSmartAnalysis(bool value) => state = state.copyWith(smartAnalysis: value);
-  void updateNotifications(bool value) => state = state.copyWith(notificationsEnabled: value);
-  void updateAITone(String value) => state = state.copyWith(aiTone: value);
-  void updateTheme(String value) => state = state.copyWith(themeMode: value);
+  @override
+  AppSettings build() {
+    // Initial build is synchronous, so we load from Prefs in background or use defaults
+    _loadSettings();
+    return const AppSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final settingsJson = prefs.getString(_settingsKey);
+      if (settingsJson != null) {
+        state = AppSettings.fromMap(jsonDecode(settingsJson));
+      }
+    } catch (e) {
+      debugPrint('Error loading settings: $e');
+    }
+  }
+
+  Future<void> _saveSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_settingsKey, jsonEncode(state.toMap()));
+    } catch (e) {
+      debugPrint('Error saving settings: $e');
+    }
+  }
+
+  void updateSmartAnalysis(bool value) {
+    state = state.copyWith(smartAnalysis: value);
+    _saveSettings();
+  }
+
+  void updateNotifications(bool value) {
+    state = state.copyWith(notificationsEnabled: value);
+    _saveSettings();
+  }
+
+  void updateAITone(String value) {
+    state = state.copyWith(aiTone: value);
+    _saveSettings();
+  }
+
+  void updateTheme(String value) {
+    state = state.copyWith(themeMode: value);
+    _saveSettings();
+  }
+
+  void updateAIModel(String value) {
+    state = state.copyWith(aiModelId: value);
+    _saveSettings();
+  }
+
+  void updateAutoAI(bool value) {
+    state = state.copyWith(isAutoAI: value);
+    _saveSettings();
+  }
 }
 
 final performanceModeProvider = Provider<bool>((ref) {
@@ -260,9 +317,13 @@ final productivityMetricsProvider = Provider<Map<String, dynamic>>((ref) {
 });
 
 class TaskNotifier extends Notifier<List<Task>> {
+  final Set<String> _deletingIds = {};
+
   @override
   List<Task> build() {
-    return ref.watch(tasksStreamProvider).value ?? [];
+    final tasks = ref.watch(tasksStreamProvider).value ?? [];
+    if (_deletingIds.isEmpty) return tasks;
+    return tasks.where((t) => !_deletingIds.contains(t.id)).toList();
   }
 
   FirestoreService? get _firestore => ref.read(firestoreServiceProvider);
@@ -363,12 +424,41 @@ class TaskNotifier extends Notifier<List<Task>> {
   }
 
   Future<void> deleteTask(String id) async {
+    // Prevent flicker with local tracking
+    _deletingIds.add(id);
+    
     // Optimistic Update
     state = state.where((t) => t.id != id).toList();
     
     // Background cleanup
     _cancelReminderForTask(id).ignore();
-    _firestore?.deleteTask(id).ignore();
+    try {
+      await _firestore?.deleteTask(id);
+    } finally {
+      _deletingIds.remove(id);
+    }
+  }
+
+  Future<void> deleteTasks(List<String> ids) async {
+    if (ids.isEmpty) return;
+    
+    // Local tracking
+    _deletingIds.addAll(ids);
+    
+    // UI Update
+    state = state.where((t) => !ids.contains(t.id)).toList();
+    
+    try {
+      // Cancel notifications
+      for (final id in ids) {
+        _cancelReminderForTask(id).ignore();
+      }
+      
+      // Batch Delete
+      await _firestore?.deleteTasksBatch(ids);
+    } finally {
+      _deletingIds.removeAll(ids);
+    }
   }
 }
 
@@ -455,7 +545,7 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
   AIService get _ai => ref.read(aiServiceProvider);
 
   Future<void> sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+    if (text.trim().isEmpty || _isGenerating) return;
     
     _isGenerating = true;
     final userMsg = AIMessage(
@@ -464,6 +554,11 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
       role: MessageRole.user,
       timestamp: DateTime.now(),
     );
+
+    final historyCount = state.length;
+    final history = historyCount > 12 
+        ? state.sublist(historyCount - 12) 
+        : List<AIMessage>.from(state);
 
     // Update local state immediately
     state = [...state, userMsg];
@@ -499,7 +594,15 @@ Habits Streaks:
 ${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: ${h.streak} day streak").join('\n')}
 ''';
 
-      final stream = _ai.getChatStream(text, tasks: tasks, extraContext: extraContext);
+      final settings = ref.read(appSettingsProvider);
+      final stream = _ai.getChatStream(
+        text, 
+        history: history,
+        tasks: tasks, 
+        extraContext: extraContext, 
+        modelId: settings.aiModelId,
+        isAutoAI: settings.isAutoAI,
+      );
       
       bool hasData = false;
       await for (final result in stream) {
@@ -513,6 +616,7 @@ ${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: $
                 role: m.role,
                 timestamp: m.timestamp,
                 actions: result.actions,
+                modelName: result.modelName,
               )
             else m
         ];
@@ -546,7 +650,7 @@ ${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: $
     }
   }
 
-  Future<void> executeAction(String messageId, String actionId) async {
+  Future<void> executeAction(String messageId, String actionId, {Map<String, dynamic>? parametersOverride}) async {
     final msgIndex = state.indexWhere((m) => m.id == messageId);
     if (msgIndex == -1) return;
 
@@ -559,11 +663,13 @@ ${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: $
     final action = msg.actions![actionIndex];
     if (action.isExecuted) return;
 
+    final actualParams = parametersOverride ?? action.parameters;
+
     // Execute based on type
     try {
       switch (action.type) {
         case AIActionType.createTask:
-          final p = action.parameters;
+          final p = actualParams;
           final newTask = Task(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
             title: p['title']?.toString() ?? 'New Task',
@@ -575,18 +681,54 @@ ${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: $
           await ref.read(tasksProvider.notifier).addTask(newTask);
           break;
         case AIActionType.updateTask:
-          final p = action.parameters;
+          final p = actualParams;
           final taskId = p['id']?.toString();
           if (taskId != null) {
-             final tasks = ref.read(tasksProvider);
-             final task = tasks.firstWhere((t) => t.id == taskId);
-             final updatedTask = task.copyWith(
-               title: p['title']?.toString(),
-               status: p['status'] == 'completed' ? TaskStatus.completed : 
-                       (p['status'] == 'inProgress' ? TaskStatus.inProgress : TaskStatus.todo),
-               priority: p['priority'] != null ? TaskPriority.values[(p['priority'] as int).clamp(0, 2)] : null,
-             );
-             await ref.read(tasksProvider.notifier).updateTask(updatedTask);
+            final tasks = ref.read(tasksProvider);
+            final taskIndex = tasks.indexWhere((t) => t.id == taskId);
+            if (taskIndex != -1) {
+              final task = tasks[taskIndex];
+              final updatedTask = task.copyWith(
+                title: p['title']?.toString(),
+                status: p['status'] == 'completed' ? TaskStatus.completed : 
+                        (p['status'] == 'inProgress' ? TaskStatus.inProgress : TaskStatus.todo),
+                priority: p['priority'] != null ? TaskPriority.values[(p['priority'] as int).clamp(0, 2)] : null,
+                category: p['category']?.toString(),
+              );
+              await ref.read(tasksProvider.notifier).updateTask(updatedTask);
+            }
+          }
+          break;
+        case AIActionType.completeTask:
+          final taskId = actualParams['id']?.toString();
+          if (taskId != null) {
+            await ref.read(tasksProvider.notifier).toggleTask(taskId);
+          }
+          break;
+        case AIActionType.deleteTasks:
+          final ids = (actualParams['ids'] as List?)?.map((e) => e.toString()).toList();
+          if (ids != null) {
+            await ref.read(tasksProvider.notifier).deleteTasks(ids);
+          }
+          break;
+        case AIActionType.suggestion:
+          // For suggestions, "executing" means picking the option.
+          // We'll send a message back to the AI with the picked value.
+          final label = actualParams['label']?.toString() ?? 'Selected';
+          final value = actualParams['value']?.toString() ?? label;
+          // Send a message "from the user" in response to this choice
+          sendMessage("[Chosen: $label] $value").ignore();
+          break;
+        case AIActionType.rescheduleAll:
+          final newDateStr = actualParams['newDate']?.toString();
+          if (newDateStr != null) {
+            final newDate = DateTime.tryParse(newDateStr) ?? DateTime.now();
+            final overdue = ref.read(overdueTasksProvider);
+            // Use batch update logic if available, or looped update
+            for (final t in overdue) {
+              final updated = t.copyWith(date: newDate);
+              await ref.read(tasksProvider.notifier).updateTask(updated);
+            }
           }
           break;
         default:

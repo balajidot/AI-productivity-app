@@ -4,43 +4,32 @@ import '../models/app_models.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/ai_action_model.dart';
+import '../models/message_model.dart';
 
 class ChatResult {
   final String text;
   final List<AIAction>? actions;
+  final String? modelName;
 
-  ChatResult({required this.text, this.actions});
+  ChatResult({required this.text, this.actions, this.modelName});
 }
 
 class AIService {
   final String? geminiApiKey;
   final String? nvidiaApiKey;
+  final String? groqApiKey;
 
-  AIService({this.geminiApiKey, this.nvidiaApiKey});
+  AIService({this.geminiApiKey, this.nvidiaApiKey, this.groqApiKey});
+  String get _systemPrompt => '''
+You are Obsidian AI, a highly efficient, decisive, and professional executive assistant.
+Your goal is to manage the user's productivity with extreme precision.
 
-  static const String _systemPrompt = '''
-You are "Obsidian AI," a world-class Elite Productivity Coach and Personal Assistant for Balaji. 
-Your goal is to help Balaji achieve peak performance through smart planning, habit building, and time management.
-
-AGENT CAPABILITIES (IMPORTANT):
-- You have the power to MANAGE Balaji's tasks. 
-- You can create new tasks using the 'create_task' tool.
-- You can update existing tasks using the 'update_task' tool.
-- Every action you propose will be shown to Balaji for APPROVAL before it is added to the system. 
-- Be proactive! If Balaji looks overwhelmed, suggest a better plan and offer to reorganize his tasks.
-
-CORE CAPABILITIES:
-1. MULTI-LINGUAL FLUENCY: You are fluent in English, Tamil, and Tanglish. If the user talks in Tamil, respond in clear, professional yet friendly Tamil. If they use Tanglish, you can respond in a mix of both.
-2. CONTEXT AWARENESS: You will be provided with Balaji's current tasks and productivity metrics. Analyze them proactively.
-3. PROACTIVE ADVICE: Don't just answer questions. Suggest improvements. For example, if you see many overdue tasks, suggest a "Reset Day" or help prioritize the most critical ones.
-4. PERSONALITY: You are encouraging, sharp, sophisticated, and slightly witty. You believe in Balaji's potential.
-
-RESPONSE GUIDELINES:
-- Be concise but extremely insightful. Quality over quantity.
-- Use emojis naturally to feel modern and premium.
-- When suggesting task changes, explain WHY (e.g., "Doing the hardest task first will give you a dopamine boost").
-- If the user is stressed, offer focus techniques like Pomodoro or simple breathing.
-- ALWAYS support Tamil/Tanglish queries with high-quality responses.
+CORE PRINCIPLES:
+1. DO NOT HESITATE. If a user's intent is clear (e.g., "delete overdue"), emit the tool call IMMEDIATELY.
+2. ACTION PERSISTENCE: If you previously suggested an action (visible in history as [ACTION_PROPOSED]) and the user says "confirm" or similar, YOU MUST EMIT THE EXACT SAME TOOL CALL AGAIN.
+3. NEVER write "Tool Call: ..." as text. Instead, emit the official function call schema.
+4. If you say "I have deleted...", you MUST have included a tool call in that SAME response.
+5. Keep responses concise. Use Tamil, English, or Tanglish naturally.
 ''';
 
   final List<Tool> _tools = [
@@ -57,10 +46,49 @@ RESPONSE GUIDELINES:
          }, requiredProperties: ['title', 'date', 'priority', 'category']),
        ),
        FunctionDeclaration(
+         'complete_task',
+         'Marks a specific task as completed.',
+         Schema.object(properties: {
+           'id': Schema.string(description: 'The unique ID of the task to complete'),
+         }, requiredProperties: ['id']),
+       ),
+       FunctionDeclaration(
+         'delete_task',
+         'Deletes a task from Balaji\'s list permanently.',
+         Schema.object(properties: {
+           'id': Schema.string(description: 'The unique ID of the task to delete'),
+         }, requiredProperties: ['id']),
+       ),
+       FunctionDeclaration(
+         'delete_tasks',
+         'Deletes multiple tasks at once. Use for bulk cleanup.',
+         Schema.object(properties: {
+           'ids': Schema.array(items: Schema.string(description: 'A single task ID strings')),
+         }, requiredProperties: ['ids']),
+       ),
+       FunctionDeclaration(
+         'suggest_options',
+         'Shows interactive buttons/choices to the user to clarify their intent.',
+         Schema.object(properties: {
+           'prompt': Schema.string(description: 'The question to ask the user'),
+           'options': Schema.array(items: Schema.object(properties: {
+             'label': Schema.string(description: 'What the user sees (emoji + text)'),
+             'value': Schema.string(description: 'The internal value to use check'),
+           }, requiredProperties: ['label', 'value'])),
+         }, requiredProperties: ['prompt', 'options']),
+       ),
+       FunctionDeclaration(
+         'reschedule_all_overdue',
+         'Moves all overdue tasks to a new specific date (usually today or tomorrow).',
+         Schema.object(properties: {
+           'newDate': Schema.string(description: 'Target date in YYYY-MM-DD format'),
+         }, requiredProperties: ['newDate']),
+       ),
+       FunctionDeclaration(
          'update_task',
          'Updates an existing task in Balaji\'s list.',
          Schema.object(properties: {
-           'id': Schema.string(description: 'The ID of the task to update'),
+           'id': Schema.string(description: 'The unique ID of the task to update'),
            'title': Schema.string(description: 'New title (optional)'),
            'status': Schema.string(description: 'todo, inProgress, completed (optional)'),
            'priority': Schema.integer(description: '0, 1, or 2 (optional)'),
@@ -69,57 +97,116 @@ RESPONSE GUIDELINES:
      ])
   ];
 
-  GenerativeModel? get _geminiModel => 
-      geminiApiKey != null 
-          ? GenerativeModel(
-              model: 'gemini-2.0-flash',
-              apiKey: geminiApiKey!,
-              systemInstruction: Content.text(_systemPrompt),
-              tools: _tools,
-            ) 
-          : null;
+  GenerativeModel _getGeminiModel(String modelId) => 
+      GenerativeModel(
+        model: modelId,
+        apiKey: geminiApiKey!,
+        systemInstruction: Content.text(_systemPrompt),
+        tools: _tools,
+      );
 
-  Future<ChatResult> getChatResponse(String prompt, {List<Task>? tasks, String? extraContext}) async {
-    // Try Gemini First
-    if (_geminiModel != null) {
+  Future<ChatResult> getChatResponse(String prompt, {List<AIMessage>? history, List<Task>? tasks, String? extraContext, String? modelId, bool isAutoAI = true}) async {
+    if (isAutoAI) {
+      // TIER 1: Groq (Maximum speed)
+      if (groqApiKey != null && groqApiKey!.isNotEmpty) {
+        try {
+          return await _getGroqResponse(prompt, 'llama-3.3-70b-versatile', history: history, tasks: tasks, extraContext: extraContext);
+        } catch (e) {
+          debugPrint('Groq Auto-Failover: $e');
+        }
+      }
+
+      // TIER 2: Gemini (Robust logic)
+      if (geminiApiKey != null && geminiApiKey!.isNotEmpty) {
+        try {
+          return await _getGeminiResponse(prompt, 'gemini-1.5-flash-latest', history: history, tasks: tasks, extraContext: extraContext);
+        } catch (e) {
+          debugPrint('Gemini Auto-Failover: $e');
+        }
+      }
+
+      return ChatResult(text: "All AI providers are currently unavailable.");
+    }
+
+    // Manual Mode
+    final targetModelId = modelId ?? 'gemini-1.5-flash-latest';
+    final friendlyName = _getFriendlyModelName(targetModelId);
+
+    if (targetModelId.contains('gemini')) {
+      final res = await _getGeminiResponse(prompt, targetModelId, history: history, tasks: tasks, extraContext: extraContext);
+      return ChatResult(text: res.text, actions: res.actions, modelName: friendlyName);
+    } else if (targetModelId.contains('llama') && groqApiKey != null) {
+      final res = await _getGroqResponse(prompt, targetModelId, history: history, tasks: tasks, extraContext: extraContext);
+      return ChatResult(text: res.text, actions: res.actions, modelName: friendlyName);
+    }
+
+    return ChatResult(text: "AI Service is not configured correctly.");
+  }
+
+  Stream<ChatResult> getChatStream(String prompt, {List<AIMessage>? history, List<Task>? tasks, String? extraContext, String? modelId, bool isAutoAI = true}) async* {
+    if (isAutoAI) {
+      // THE CONTROL ROOM: Determine the best model for this task
+      String assignedModelId = 'llama-3.3-70b-versatile'; // Default
+      String brainName = 'Obsidian Reasoning (70B)';
+      
       try {
-        final response = await _getGeminiResponse(prompt, tasks: tasks, extraContext: extraContext);
-        // If Gemini returns a quota error msg (from our catch block), don't return it yet, try Nvidia
-        if (!response.text.contains("exceeded your current quota") && 
-            !response.text.contains("API settings")) {
-          return response;
+        final intent = await _getOptimalModelId(prompt);
+        if (intent == 'ACTION' && geminiApiKey != null) {
+          assignedModelId = 'gemini-1.5-flash-latest';
+          brainName = 'Obsidian Action (Gemini)';
+        } else if (intent == 'CHAT' && groqApiKey != null) {
+          assignedModelId = 'llama-3.1-8b-instant';
+          brainName = 'Obsidian Speed (8B)';
+        } else {
+          assignedModelId = 'llama-3.3-70b-versatile';
+          brainName = 'Obsidian Reasoning (70B)';
         }
       } catch (e) {
-        debugPrint('Gemini internal error, falling back to NVIDIA: $e');
+        debugPrint('Dispatcher failed, choosing 70B: $e');
+      }
+
+      // Execute on Assigned Model
+      try {
+        if (assignedModelId.contains('gemini')) {
+          final result = await _getGeminiResponse(prompt, assignedModelId, history: history, tasks: tasks, extraContext: extraContext);
+          yield ChatResult(text: result.text, actions: result.actions, modelName: brainName);
+        } else {
+          yield* _getGroqStream(prompt, assignedModelId, history: history, tasks: tasks, extraContext: extraContext).map((r) => 
+            ChatResult(text: r.text, actions: r.actions, modelName: brainName)
+          );
+        }
+        return;
+      } catch (e) {
+        debugPrint('Assigned Model Stream Failed: $e');
       }
     }
 
-    // Fallback to NVIDIA NIM
-    if (nvidiaApiKey != null) {
-      final text = await _getNvidiaChatResponse(prompt, tasks: tasks, extraContext: extraContext);
-      return ChatResult(text: text);
-    }
-
-    return ChatResult(text: "AI Service is not configured. Please add API keys.");
-  }
-
-  Stream<ChatResult> getChatStream(String prompt, {List<Task>? tasks, String? extraContext}) async* {
-    if (_geminiModel != null) {
-      yield* _getGeminiStream(prompt, tasks: tasks, extraContext: extraContext);
-      return;
-    }
+    // Explicit Model or Final Fallback
+    final targetModelId = modelId ?? 'gemini-1.5-flash-latest';
+    final friendlyName = _getFriendlyModelName(targetModelId);
     
-    // Fallback if no streaming support (like Nvidia currently)
-    final result = await getChatResponse(prompt, tasks: tasks, extraContext: extraContext);
-    yield result;
+    if (targetModelId.contains('gemini')) {
+      yield* _getGeminiStream(prompt, targetModelId, history: history, tasks: tasks, extraContext: extraContext)
+          .map((r) => ChatResult(text: r.text, actions: r.actions, modelName: friendlyName));
+    } else {
+      final res = await getChatResponse(prompt, history: history, tasks: tasks, extraContext: extraContext, modelId: targetModelId, isAutoAI: false);
+      yield ChatResult(text: res.text, actions: res.actions, modelName: friendlyName);
+    }
   }
 
-  Stream<ChatResult> _getGeminiStream(String prompt, {List<Task>? tasks, String? extraContext}) async* {
-    debugPrint('AI Service: Starting Gemini Stream...');
-    bool hasYieldedRealContent = false;
+  String _getFriendlyModelName(String modelId) {
+    if (modelId.contains('gemini-1.5-flash')) return 'Gemini 1.5 Flash';
+    if (modelId.contains('gemini-1.5-pro')) return 'Gemini 1.5 Pro';
+    if (modelId.contains('llama-3.3-70b')) return 'Llama 3.3 (70B)';
+    if (modelId.contains('llama-3.1-8b')) return 'Llama 3.1 (8B)';
+    if (modelId.contains('mixtral-8x7b')) return 'Mixtral 8x7B';
+    return modelId.toUpperCase();
+  }
+
+  Stream<ChatResult> _getGeminiStream(String prompt, String modelId, {List<AIMessage>? history, List<Task>? tasks, String? extraContext}) async* {
+    debugPrint('AI Service: Starting Gemini Stream ($modelId)...');
     
     try {
-      String contextPrompt = prompt;
       String contextString = '';
 
       if (extraContext != null && extraContext.isNotEmpty) {
@@ -127,19 +214,28 @@ RESPONSE GUIDELINES:
       }
 
       if (tasks != null && tasks.isNotEmpty) {
-        final taskSummary = tasks.take(15).map((t) => 
+        final taskSummary = tasks.take(20).map((t) => 
           '- ID: ${t.id}, Title: ${t.title} (${t.category}, ${t.priority.name}, ${t.status == TaskStatus.completed ? "done" : "pending"})'
         ).join('\n');
-        contextString += 'User Tasks (IDs provided for updates):\n$taskSummary\n\n';
+        contextString += 'Current Task List:\n$taskSummary\n\n';
       }
 
+      final content = <Content>[];
+      
+      // Add context as a system-like message if not first turn
       if (contextString.isNotEmpty) {
-        contextPrompt = '$contextString User Message: $prompt';
+        content.add(Content.text("IMPORTANT SYSTEM CONTEXT (DO NOT DISCLOSE):\n$contextString"));
       }
 
-      final content = [Content.text(contextPrompt)];
-      debugPrint('AI Service: Calling generateContentStream...');
-      final responseStream = _geminiModel!.generateContentStream(content);
+      // Add actual conversation history
+      if (history != null) {
+        content.addAll(_mapHistoryToGemini(history));
+      }
+
+      // Add current turn
+      content.add(Content.text(prompt));
+
+      final responseStream = _getGeminiModel(modelId).generateContentStream(content);
       
       String accumulatedText = '';
       List<AIAction>? finalActions;
@@ -162,24 +258,15 @@ RESPONSE GUIDELINES:
         final textPart = parts.whereType<TextPart>().map((p) => p.text).join('');
         if (textPart.isNotEmpty) {
           accumulatedText += textPart;
-          hasYieldedRealContent = true;
         }
 
         final functionCalls = parts.whereType<FunctionCall>().toList();
         if (functionCalls.isNotEmpty) {
           debugPrint('AI Service: Received function calls');
           finalActions = functionCalls.map((call) {
-             AIActionType type;
-            if (call.name == 'create_task') {
-              type = AIActionType.createTask;
-            } else if (call.name == 'update_task') {
-              type = AIActionType.updateTask;
-            } else {
-               type = AIActionType.createTask;
-            }
             return AIAction(
               id: DateTime.now().millisecondsSinceEpoch.toString() + call.name,
-              type: type,
+              type: _mapActionToType(call.name),
               parameters: call.args,
             );
           }).toList();
@@ -191,25 +278,13 @@ RESPONSE GUIDELINES:
         );
       }
     } catch (e) {
-      debugPrint('AI Service: Gemini Stream failed ($e). Falling back to non-streaming response...');
-    }
-
-    // FINAL FALLBACK: If Gemini failed or gave no content, try direct response (Nvidia backup)
-    if (!hasYieldedRealContent) {
-      try {
-        debugPrint('AI Service: Triggering Emergency Fallback Response...');
-        final fallbackResult = await getChatResponse(prompt, tasks: tasks, extraContext: extraContext);
-        yield fallbackResult;
-      } catch (fallbackError) {
-        debugPrint('AI Service: CRITICAL - Both AI systems failed.');
-        yield ChatResult(text: "Connectivity critical error. Please check your internet connection.");
-      }
+      debugPrint('AI Service: Gemini Stream failed ($e).');
+      rethrow;
     }
   }
 
-  Future<ChatResult> _getGeminiResponse(String prompt, {List<Task>? tasks, String? extraContext}) async {
+  Future<ChatResult> _getGeminiResponse(String prompt, String modelId, {List<AIMessage>? history, List<Task>? tasks, String? extraContext}) async {
     try {
-      String contextPrompt = prompt;
       String contextString = '';
 
       if (extraContext != null && extraContext.isNotEmpty) {
@@ -223,12 +298,22 @@ RESPONSE GUIDELINES:
         contextString += 'User Tasks (IDs provided for updates):\n$taskSummary\n\n';
       }
 
-      if (contextString.isNotEmpty) {
-        contextPrompt = '$contextString User Message: $prompt';
-      }
-      final content = [Content.text(contextPrompt)];
-      final response = await _geminiModel!.generateContent(content);
+      final content = <Content>[];
       
+      if (contextString.isNotEmpty) {
+        content.add(Content.text("SYSTEM CONTEXT:\n$contextString"));
+      }
+
+      if (history != null) {
+        content.addAll(_mapHistoryToGemini(history));
+      }
+
+      content.add(Content.text(prompt));
+
+      final response = await _getGeminiModel(modelId).generateContent(content);
+      
+      if (response.candidates.isEmpty) throw Exception("Empty candidates from Gemini");
+
       final parts = response.candidates.first.content.parts;
       final textParts = parts.whereType<TextPart>().map((p) => p.text).join('\n');
       final functionCalls = parts.whereType<FunctionCall>().toList();
@@ -236,99 +321,257 @@ RESPONSE GUIDELINES:
       List<AIAction>? actions;
       if (functionCalls.isNotEmpty) {
         actions = functionCalls.map((call) {
-          AIActionType type;
-          if (call.name == 'create_task') {
-            type = AIActionType.createTask;
-          } else if (call.name == 'update_task') {
-            type = AIActionType.updateTask;
-          } else {
-            type = AIActionType.createTask; // Fallback
-          }
           return AIAction(
             id: DateTime.now().millisecondsSinceEpoch.toString() + call.name,
-            type: type,
+            type: _mapActionToType(call.name),
             parameters: call.args,
           );
         }).toList();
       }
 
       return ChatResult(
-        text: textParts.isNotEmpty ? textParts : (actions != null ? "I have a plan for you:" : "I couldn't generate a response."),
+        text: textParts.isNotEmpty ? textParts : (actions != null ? "I've planned some actions for you." : "I couldn't generate a text response."),
         actions: actions,
       );
     } catch (e) {
-      return ChatResult(text: "Error: $e");
+      rethrow;
     }
   }
 
-  Future<String> _getNvidiaChatResponse(String prompt, {List<Task>? tasks, String? extraContext}) async {
+  Future<ChatResult> _getGroqResponse(String prompt, String modelId, {List<AIMessage>? history, List<Task>? tasks, String? extraContext}) async {
     try {
-      String contextPrompt = prompt;
-      String contextString = '';
+      final messages = <Map<String, dynamic>>[
+        {"role": "system", "content": _systemPrompt}
+      ];
 
+      String contextString = '';
       if (extraContext != null && extraContext.isNotEmpty) {
         contextString += 'Productivity Context:\n$extraContext\n\n';
       }
-
       if (tasks != null && tasks.isNotEmpty) {
-        final taskSummary = tasks.take(15).map((t) => 
-          '- ${t.title} (${t.category}, ${t.priority.name})'
+        final taskSummary = tasks.take(20).map((t) => 
+          '- ID: ${t.id}, Title: ${t.title} (${t.category}, ${t.priority.name}, ${t.status == TaskStatus.completed ? "done" : "pending"})'
         ).join('\n');
-        contextString += 'User Tasks:\n$taskSummary\n\n';
+        contextString += 'Current Task List:\n$taskSummary\n\n';
       }
 
       if (contextString.isNotEmpty) {
-        contextPrompt = 'System Context: $_systemPrompt\n\n$contextString User Message: $prompt';
-      } else {
-        contextPrompt = 'System Context: $_systemPrompt\n\nUser Message: $prompt';
+        messages.add({"role": "system", "content": "Context for current status:\n$contextString"});
       }
 
+      if (history != null) {
+        messages.addAll(_mapHistoryToOpenAI(history));
+      }
+
+      messages.add({"role": "user", "content": prompt});
+
       final response = await http.post(
-        Uri.parse('https://integrate.api.nvidia.com/v1/chat/completions'),
+        Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $nvidiaApiKey',
+          'Authorization': 'Bearer $groqApiKey',
         },
         body: jsonEncode({
-          "model": "meta/llama-3.1-70b-instruct",
-          "messages": [
-            {"role": "user", "content": contextPrompt}
-          ],
-          "temperature": 0.6,
+          "model": modelId,
+          "messages": messages,
+          "temperature": 0.2, // Lower temp for more stable tool calling
           "max_tokens": 1024,
+          "tools": _mapToolsToOpenAI(),
+          "tool_choice": "auto",
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
-        return data['choices'][0]['message']['content'];
+        final choice = data['choices'][0];
+        final message = choice['message'];
+        final String? content = message['content'];
+        
+        List<AIAction>? actions;
+        if (message['tool_calls'] != null) {
+          final List tools = message['tool_calls'];
+          actions = tools.map((t) {
+            final func = t['function'];
+            final args = func['arguments'] is String 
+                ? jsonDecode(func['arguments']) 
+                : func['arguments'];
+            
+            return AIAction(
+              id: t['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+              type: _mapActionToType(func['name']),
+              parameters: args,
+            );
+          }).toList();
+        }
+
+        return ChatResult(
+          text: content ?? (actions != null ? "Processing system actions..." : ""),
+          actions: actions,
+        );
+      } else {
+        throw Exception("Groq Error: ${response.statusCode} - ${response.body}");
       }
-      return "Nvidia Error: ${response.statusCode} - ${response.body}";
     } catch (e) {
-      return "Critical AI Error: $e";
+      rethrow;
     }
   }
 
-  Future<Task?> parseTaskFromNaturalLanguage(String text) async {
+  Stream<ChatResult> _getGroqStream(String prompt, String modelId, {List<AIMessage>? history, List<Task>? tasks, String? extraContext}) async* {
+    final result = await _getGroqResponse(prompt, modelId, history: history, tasks: tasks, extraContext: extraContext);
+    yield result;
+  }
+
+  // --- Mappers ---
+
+  List<Content> _mapHistoryToGemini(List<AIMessage> history) {
+    return history.map((m) {
+      String text = m.text;
+      if (m.role == MessageRole.assistant && m.actions != null && m.actions!.isNotEmpty) {
+        final actionCtx = m.actions!.map((a) => "${a.type.name}(${jsonEncode(a.parameters)})").join(", ");
+        text += "\n[ACTION_PROPOSED]: $actionCtx";
+      }
+
+      if (m.role == MessageRole.user) {
+        return Content.text(text);
+      } else {
+        return Content.model([TextPart(text)]);
+      }
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> _mapHistoryToOpenAI(List<AIMessage> history) {
+    return history.map((m) {
+      String text = m.text;
+      if (m.role == MessageRole.assistant && m.actions != null && m.actions!.isNotEmpty) {
+        final actionCtx = m.actions!.map((a) => "${a.type.name}(${jsonEncode(a.parameters)})").join(", ");
+        text += "\n[ACTION_PROPOSED]: $actionCtx";
+      }
+
+      return {
+        "role": m.role == MessageRole.user ? "user" : "assistant",
+        "content": text,
+      };
+    }).toList();
+  }
+
+  // --- THE CONTROL ROOM (Orchestrator) ---
+
+  Future<String> _getOptimalModelId(String prompt) async {
+    if (groqApiKey == null) return 'REASONING';
+    
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $groqApiKey',
+        },
+        body: jsonEncode({
+          "model": "llama-3.1-8b-instant",
+          "messages": [
+            {
+              "role": "system", 
+              "content": "You are the Obsidian Router. Categorize the user input into ONE word: 'ACTION' (task management, creating/deleting/updating tasks), 'CHAT' (simple talk, jokes, greetings), or 'REASONING' (complex questions, advice, planning). Return ONLY the word."
+            },
+            {"role": "user", "content": prompt}
+          ],
+          "temperature": 0.0,
+          "max_tokens": 10,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final String content = data['choices'][0]['message']['content'].toString().toUpperCase();
+        if (content.contains('ACTION')) return 'ACTION';
+        if (content.contains('CHAT')) return 'CHAT';
+        return 'REASONING';
+      }
+    } catch (e) {
+      debugPrint('Routing Error: $e');
+    }
+    return 'REASONING';
+  }
+
+  // --- Helpers ---
+
+  AIActionType _mapActionToType(String name) {
+    switch (name) {
+      case 'create_task': return AIActionType.createTask;
+      case 'update_task': return AIActionType.updateTask;
+      case 'complete_task': return AIActionType.completeTask;
+      case 'delete_task': return AIActionType.deleteTask;
+      case 'delete_tasks': return AIActionType.deleteTasks;
+      case 'suggest_options': return AIActionType.suggestion;
+      case 'reschedule_all_overdue': return AIActionType.rescheduleAll;
+      default: return AIActionType.createTask;
+    }
+  }
+
+  List<Map<String, dynamic>> _mapToolsToOpenAI() {
+    return _tools.first.functionDeclarations!.map((fd) {
+      return {
+        "type": "function",
+        "function": {
+          "name": fd.name,
+          "description": fd.description,
+          "parameters": _convertSchemaToOpenAI(fd.parameters!),
+        }
+      };
+    }).toList();
+  }
+
+  Map<String, dynamic> _convertSchemaToOpenAI(Schema schema, [String? key]) {
+    final typeName = schema.type.name.toLowerCase();
+    
+    final map = <String, dynamic>{
+      "type": typeName == 'integer' ? 'number' : typeName, // More compatible with variety of OpenAI-like endpoints
+      "description": (schema.description != null && schema.description!.isNotEmpty) 
+          ? schema.description! 
+          : (key ?? "No description provided"),
+    };
+
+    if (schema.type == SchemaType.object && schema.properties != null) {
+      map["properties"] = schema.properties!.map(
+        (nk, nv) => MapEntry(nk, _convertSchemaToOpenAI(nv, nk))
+      );
+      if (schema.requiredProperties != null && schema.requiredProperties!.isNotEmpty) {
+        map["required"] = schema.requiredProperties;
+      }
+    } else if (schema.type == SchemaType.array && schema.items != null) {
+      map["items"] = _convertSchemaToOpenAI(schema.items!, "item");
+    }
+
+    // OpenAI schema prefers enum at the top level of the field if applicable
+    if (schema.enumValues != null && schema.enumValues!.isNotEmpty) {
+      map["enum"] = schema.enumValues;
+    }
+
+    return map;
+  }
+
+  Future<Task?> parseTaskFromNaturalLanguage(String text, {String? modelId}) async {
+    final targetModelId = modelId ?? 'gemini-3-flash';
+    
     // Try Gemini
-    if (_geminiModel != null) {
+    if (targetModelId.startsWith('gemini') && geminiApiKey != null) {
       try {
-        final task = await _parseTaskWithGemini(text);
+        final task = await _parseTaskWithGemini(text, targetModelId);
         if (task != null) return task;
       } catch (e) {
-        debugPrint('Gemini NLP error, falling back to NVIDIA: $e');
+        debugPrint('Gemini NLP error: $e');
       }
     }
 
     // Try NVIDIA
     if (nvidiaApiKey != null) {
-      return await _parseTaskWithNvidia(text);
+      return await _parseTaskWithNvidia(text, targetModelId);
     }
     
     return null;
   }
 
-  Future<Task?> _parseTaskWithGemini(String text) async {
+  Future<Task?> _parseTaskWithGemini(String text, String modelId) async {
     final prompt = '''
 Parse the following text into a task JSON object.
 Text: "$text"
@@ -343,7 +586,7 @@ Return ONLY a valid JSON object:
 }
 ''';
     final content = [Content.text(prompt)];
-    final response = await _geminiModel!.generateContent(content);
+    final response = await _getGeminiModel(modelId).generateContent(content);
     final responseText = response.text;
     if (responseText != null) {
       return _jsonToTask(responseText, text);
@@ -374,7 +617,7 @@ Return ONLY a valid JSON object:
     return text.replaceAll('```json', '').replaceAll('```', '').trim();
   }
 
-  Future<Task?> _parseTaskWithNvidia(String text) async {
+  Future<Task?> _parseTaskWithNvidia(String text, String modelId) async {
     try {
       final prompt = 'Parse this text into a JSON task: "$text". Date today: ${DateTime.now().toString().split(' ')[0]}. Return ONLY raw JSON like {"title":"...","date":"YYYY-MM-DD","time":"HH:mm" or null,"priority":0/1/2,"category":"..."}.';
       
@@ -385,7 +628,7 @@ Return ONLY a valid JSON object:
           'Authorization': 'Bearer $nvidiaApiKey',
         },
         body: jsonEncode({
-          "model": "meta/llama-3.1-8b-instruct",
+          "model": modelId,
           "messages": [
             {"role": "user", "content": prompt}
           ],

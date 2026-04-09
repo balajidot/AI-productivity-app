@@ -7,7 +7,7 @@ import 'glass_container.dart';
 class AIActionCard extends StatelessWidget {
   final String messageId;
   final AIAction action;
-  final Function(String, String) onApprove;
+  final Function(String, String, {Map<String, dynamic>? options}) onApprove;
   final Function(String, String) onReject;
 
   const AIActionCard({
@@ -104,6 +104,10 @@ class AIActionCard extends StatelessWidget {
         return LucideIcons.plusCircle;
       case AIActionType.updateTask:
         return LucideIcons.edit3;
+      case AIActionType.deleteTasks:
+        return LucideIcons.trash2;
+      case AIActionType.suggestion:
+        return LucideIcons.helpCircle;
       default:
         return LucideIcons.activity;
     }
@@ -115,6 +119,10 @@ class AIActionCard extends StatelessWidget {
         return 'Proposed Task';
       case AIActionType.updateTask:
         return 'Update Task';
+      case AIActionType.deleteTasks:
+        return 'Batch Delete';
+      case AIActionType.suggestion:
+        return 'Obsidian Suggests';
       default:
         return 'System Action';
     }
@@ -137,9 +145,43 @@ class AIActionCard extends StatelessWidget {
         if (p['title'] != null) _detailRow(LucideIcons.edit2, 'New Title: ${p['title']}', theme),
         if (p['status'] != null) _detailRow(LucideIcons.checkCircle, 'New Status: ${p['status']}', theme),
       ];
+    } else if (action.type == AIActionType.deleteTasks) {
+      final ids = (p['ids'] as List?)?.length ?? 0;
+      children = [_detailRow(LucideIcons.trash2, 'Deleting $ids tasks permanently.', theme)];
+    } else if (action.type == AIActionType.suggestion) {
+      final prompt = p['prompt']?.toString() ?? 'Select an option:';
+      final options = (p['options'] as List?) ?? [];
+      
+      children = [
+        _detailRow(LucideIcons.messageSquare, prompt, theme),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.map((opt) {
+            final label = opt['label']?.toString() ?? 'Option';
+            return ElevatedButton(
+              onPressed: () {
+                onApprove(messageId, action.id, options: opt); 
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primaryContainer,
+                foregroundColor: theme.colorScheme.onPrimaryContainer,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(label),
+            );
+          }).toList(),
+        ),
+      ];
     }
 
-    return Column(children: children);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
   }
 
   Widget _detailRow(IconData icon, String text, ThemeData theme) {

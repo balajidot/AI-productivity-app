@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-enum AIActionType { createTask, updateTask, deleteRecord, setHabit, multiAction }
+enum AIActionType { createTask, updateTask, deleteTask, deleteTasks, completeTask, updateHabit, rescheduleAll, deleteRecord, setHabit, multiAction, suggestion }
 
 class AIAction {
   final String id;

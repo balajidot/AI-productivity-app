@@ -9,6 +9,7 @@ class AIMessage {
   final DateTime timestamp;
 
   final List<AIAction>? actions;
+  final String? modelName;
 
   AIMessage({
     required this.id,
@@ -16,6 +17,7 @@ class AIMessage {
     required this.role,
     required this.timestamp,
     this.actions,
+    this.modelName,
   });
 
   Map<String, dynamic> toMap() {
@@ -25,6 +27,7 @@ class AIMessage {
       'role': role.index,
       'timestamp': timestamp.toIso8601String(),
       'actions': actions?.map((x) => x.toMap()).toList(),
+      'modelName': modelName,
     };
   }
 
@@ -37,6 +40,7 @@ class AIMessage {
           ? DateTime.tryParse(map['timestamp'].toString()) ?? DateTime.now() 
           : DateTime.now(),
       actions: (map['actions'] as List?)?.map((x) => AIAction.fromMap(x)).toList(),
+      modelName: map['modelName']?.toString(),
     );
   }
 }

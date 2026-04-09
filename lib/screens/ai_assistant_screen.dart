@@ -171,6 +171,50 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
         child: Column(
           crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
+            if (!isUser && message.modelName != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8, left: 4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        message.modelName!.contains('Gemini') ? LucideIcons.sparkles : LucideIcons.zap, 
+                        size: 11, 
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'POWERED BY ',
+                        style: GoogleFonts.manrope(
+                          fontSize: 8,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      Text(
+                        message.modelName!.toUpperCase(),
+                        style: GoogleFonts.manrope(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             GlassContainer(
               color: isUser ? theme.colorScheme.primary : theme.colorScheme.surfaceContainer,
               opacity: isUser ? 0.3 : 0.7,
@@ -192,7 +236,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
                 children: message.actions!.map((action) => AIActionCard(
                   messageId: message.id,
                   action: action,
-                  onApprove: (mId, aId) => ref.read(chatProvider.notifier).executeAction(mId, aId),
+                  onApprove: (mId, aId, {options}) => ref.read(chatProvider.notifier).executeAction(mId, aId, parametersOverride: options),
                   onReject: (mId, aId) => ref.read(chatProvider.notifier).rejectAction(mId, aId),
                 )).toList(),
               ),

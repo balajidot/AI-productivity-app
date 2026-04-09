@@ -185,6 +185,13 @@ class Habit {
       completedDates: dates,
     );
   }
+
+  bool get completedToday {
+    if (completedDates.isEmpty) return false;
+    final last = completedDates.last;
+    final now = DateTime.now();
+    return last.year == now.year && last.month == now.month && last.day == now.day;
+  }
 }
 
 class AppSettings {
@@ -192,12 +199,16 @@ class AppSettings {
   final bool notificationsEnabled;
   final String aiTone;
   final String themeMode; // 'Light', 'Dark', 'System'
+  final String aiModelId; // ID of the preferred AI model
+  final bool isAutoAI;
 
   const AppSettings({
     this.smartAnalysis = true,
     this.notificationsEnabled = true,
     this.aiTone = 'Professional',
     this.themeMode = 'System',
+    this.aiModelId = 'gemini-3.1-flash-lite-preview',
+    this.isAutoAI = true,
   });
 
   AppSettings copyWith({
@@ -205,12 +216,38 @@ class AppSettings {
     bool? notificationsEnabled,
     String? aiTone,
     String? themeMode,
+    String? aiModelId,
+    bool? isAutoAI,
   }) {
     return AppSettings(
       smartAnalysis: smartAnalysis ?? this.smartAnalysis,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       aiTone: aiTone ?? this.aiTone,
       themeMode: themeMode ?? this.themeMode,
+      aiModelId: aiModelId ?? this.aiModelId,
+      isAutoAI: isAutoAI ?? this.isAutoAI,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'smartAnalysis': smartAnalysis,
+      'notificationsEnabled': notificationsEnabled,
+      'aiTone': aiTone,
+      'themeMode': themeMode,
+      'aiModelId': aiModelId,
+      'isAutoAI': isAutoAI,
+    };
+  }
+
+  factory AppSettings.fromMap(Map<String, dynamic> map) {
+    return AppSettings(
+      smartAnalysis: map['smartAnalysis'] ?? true,
+      notificationsEnabled: map['notificationsEnabled'] ?? true,
+      aiTone: map['aiTone'] ?? 'Professional',
+      themeMode: map['themeMode'] ?? 'System',
+      aiModelId: map['aiModelId'] ?? 'gemini-3.1-flash-lite-preview',
+      isAutoAI: map['isAutoAI'] ?? true,
     );
   }
 }

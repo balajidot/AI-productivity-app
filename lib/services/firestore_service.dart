@@ -30,6 +30,20 @@ class FirestoreService {
     return _tasksRef.doc(id).delete();
   }
 
+  Future<void> deleteTasksBatch(List<String> ids) async {
+    if (ids.isEmpty) return;
+    
+    // Batch operations are limited to 500 documents
+    for (var i = 0; i < ids.length; i += 500) {
+      final batch = _db.batch();
+      final chunk = ids.skip(i).take(500);
+      for (var id in chunk) {
+        batch.delete(_tasksRef.doc(id));
+      }
+      await batch.commit();
+    }
+  }
+
   // --- Habits ---
   CollectionReference get _habitsRef => 
       _db.collection('users').doc(uid).collection('habits');
