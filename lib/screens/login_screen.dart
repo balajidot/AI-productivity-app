@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -88,9 +87,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                           child: Center(
-                            child: Image.file(
-                              // Using the generated premium logo path
-                              File('C:/Users/acer/.gemini/antigravity/brain/84557f4d-862a-4173-ba0e-05e68b89c66a/google_obsidian_logo_1775731529907.png'),
+                            child: Image.asset(
+                              'assets/images/logo.png',
                               width: 80,
                               height: 80,
                               errorBuilder: (context, error, stackTrace) => const Icon(

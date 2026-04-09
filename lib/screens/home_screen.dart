@@ -116,7 +116,8 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 32),
 
               // Stats Cards Row
-              IntrinsicHeight(
+              SizedBox(
+                height: 130, // Increased from 100 to 130 to accommodate larger fonts
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -195,14 +196,23 @@ class HomeScreen extends ConsumerWidget {
 
               // Overdue Section
               if (overdueTasks.isNotEmpty) ...[
-                _buildSectionHeader(context, 'Overdue', badgeCount: overdueTasks.length),
+                _buildSectionHeader(
+                  context,
+                  'Overdue',
+                  badgeCount: overdueTasks.length,
+                  onTap: () => ref.read(navigationProvider.notifier).set(1),
+                ),
                 const SizedBox(height: 12),
                 ...overdueTasks.map((task) => _buildTaskItem(context, ref, task, isOverdue: true)),
                 const SizedBox(height: 24),
               ],
 
               // Today's Tasks
-              _buildSectionHeader(context, "Today's Flow"),
+              _buildSectionHeader(
+                context,
+                "Today's Flow",
+                onTap: () => ref.read(navigationProvider.notifier).set(1),
+              ),
               const SizedBox(height: 12),
               if (todayTasks.isEmpty)
                 GlassContainer(
@@ -210,25 +220,22 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       Icon(LucideIcons.sunrise, color: AppColors.onSurfaceVariant.withValues(alpha: 0.5), size: 20),
                       const SizedBox(width: 12),
-                      Text(
-                        'No tasks for today. Tap + to add one!',
-                        style: GoogleFonts.inter(
-                          color: AppColors.onSurfaceVariant,
-                          fontSize: 14,
+                      Expanded(
+                        child: Text(
+                          'No tasks for today. Tap + to add one!',
+                          style: GoogleFonts.inter(
+                            color: AppColors.onSurfaceVariant,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 )
               else
-                ...todayTasks.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final task = entry.value;
-                  return _buildTaskItem(context, ref, task)
-                    .animate()
-                    .fadeIn(delay: (400 + (index * 50)).ms, duration: 400.ms)
-                    .slideX(begin: 0.1, curve: Curves.easeOutCubic);
-                }),
+                Column(
+                  children: todayTasks.map((task) => _buildTaskItem(context, ref, task)).toList(),
+                ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.05),
 
               const SizedBox(height: 32),
 
@@ -244,7 +251,7 @@ class HomeScreen extends ConsumerWidget {
                       'Add Task',
                       AppColors.primary,
                       () {
-                        // Navigate to tasks tab
+                        ref.read(navigationProvider.notifier).set(1);
                       },
                     ),
                   ),
@@ -256,7 +263,7 @@ class HomeScreen extends ConsumerWidget {
                       'Ask AI',
                       AppColors.tertiary,
                       () {
-                        // Navigate to AI tab
+                        ref.read(navigationProvider.notifier).set(3);
                       },
                     ),
                   ),
@@ -274,26 +281,33 @@ class HomeScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribute top and bottom
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(height: 12),
-              Text(
-                value,
-                style: GoogleFonts.manrope(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.onSurface,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: color, size: 20),
+                const SizedBox(height: 8),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    value,
+                    style: GoogleFonts.manrope(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.onSurface,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.onSurfaceVariant,
@@ -304,38 +318,41 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title, {int? badgeCount}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            if (badgeCount != null) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$badgeCount',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.error,
+  Widget _buildSectionHeader(BuildContext context, String title, {int? badgeCount, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              if (badgeCount != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$badgeCount',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.error,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
-        ),
-        Icon(LucideIcons.chevronRight, color: AppColors.onSurfaceVariant, size: 20),
-      ],
+          ),
+          Icon(LucideIcons.chevronRight, color: AppColors.onSurfaceVariant, size: 20),
+        ],
+      ),
     );
   }
 

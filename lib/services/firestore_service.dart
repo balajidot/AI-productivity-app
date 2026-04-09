@@ -15,9 +15,10 @@ class FirestoreService {
   Stream<List<Task>> getTasks() {
     return _tasksRef.orderBy('date', descending: true).snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data == null) return null;
         return Task.fromMap({...data, 'id': doc.id});
-      }).toList();
+      }).whereType<Task>().toList();
     });
   }
 
@@ -36,9 +37,10 @@ class FirestoreService {
   Stream<List<Habit>> getHabits() {
     return _habitsRef.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data == null) return null;
         return Habit.fromMap({...data, 'id': doc.id});
-      }).toList();
+      }).whereType<Habit>().toList();
     });
   }
 
@@ -57,9 +59,10 @@ class FirestoreService {
   Stream<List<AIMessage>> getMessages() {
     return _messagesRef.orderBy('timestamp', descending: false).snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data == null) return null;
         return AIMessage.fromMap({...data, 'id': doc.id});
-      }).toList();
+      }).whereType<AIMessage>().toList();
     });
   }
 
@@ -68,11 +71,17 @@ class FirestoreService {
   }
 
   Future<void> clearChatHistory() async {
-    final batch = _db.batch();
     final snapshots = await _messagesRef.get();
-    for (var doc in snapshots.docs) {
-      batch.delete(doc.reference);
+    if (snapshots.docs.isEmpty) return;
+
+    // Use chunks to respect Firestore 500 items limit per batch
+    for (var i = 0; i < snapshots.docs.length; i += 500) {
+      final batch = _db.batch();
+      final chunk = snapshots.docs.skip(i).take(500);
+      for (var doc in chunk) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
     }
-    return batch.commit();
   }
 }

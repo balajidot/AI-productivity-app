@@ -106,11 +106,6 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddTaskModal(context),
-        backgroundColor: AppColors.primary,
-        child: const Icon(LucideIcons.plus, color: AppColors.background),
-      ),
     );
   }
 
@@ -528,15 +523,6 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  void _showAddTaskModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => const QuickAddTaskSheet(),
     );
   }
 

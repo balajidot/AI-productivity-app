@@ -153,7 +153,7 @@ Return ONLY a valid JSON object:
 
   String _extractJson(String text) {
     // 1. Try to find content between ```json and ```
-    final jsonBlockMatch = RegExp(r'```json\s*([\s\S]*?)\s*```').firstMatch(text);
+    final jsonBlockMatch = RegExp(r'```json\s*([\s\S]*?)\s*```', caseSensitive: false).firstMatch(text);
     if (jsonBlockMatch != null) {
       return jsonBlockMatch.group(1)!.trim();
     }
@@ -170,7 +170,8 @@ Return ONLY a valid JSON object:
       return braceMatch.group(1)!.trim();
     }
 
-    return text.trim();
+    // 4. Clean up common AI artifacts
+    return text.replaceAll('```json', '').replaceAll('```', '').trim();
   }
 
   Future<Task?> _parseTaskWithNvidia(String text) async {
@@ -219,7 +220,7 @@ Return ONLY a valid JSON object:
       
       // Robust Date Parsing
       DateTime date = DateTime.now();
-      if (dateStr != null) {
+      if (dateStr != null && dateStr.isNotEmpty) {
         date = DateTime.tryParse(dateStr) ?? date;
         // Check for common AI text in date
         if (dateStr.toLowerCase().contains('tomorrow')) {
@@ -227,26 +228,64 @@ Return ONLY a valid JSON object:
         }
       }
       
-      final time = parsed['time']?.toString();
+      // Flexible Time Parsing (handles "2 PM", "14:00", "2:00 PM")
+      String? time = parsed['time']?.toString();
+      if (time != null && time.isNotEmpty) {
+        time = _normalizeTime(time);
+      }
       
       int priorityVal = 1;
       if (parsed['priority'] is int) {
-        priorityVal = parsed['priority'].clamp(0, 2);
+        priorityVal = (parsed['priority'] as int).clamp(0, 2);
       } else if (parsed['priority'] != null) {
         priorityVal = int.tryParse(parsed['priority'].toString())?.clamp(0, 2) ?? 1;
       }
 
+      // Safe category mapping
+      final rawCategory = parsed['category']?.toString() ?? 'Inbox';
+      final validCategories = ['Work', 'Personal', 'Health', 'Study', 'Finance', 'Inbox'];
+      final category = validCategories.firstWhere(
+        (c) => c.toLowerCase() == rawCategory.toLowerCase(),
+        orElse: () => 'Inbox',
+      );
+
       return Task(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: '${DateTime.now().millisecondsSinceEpoch}_${(100 + (DateTime.now().microsecond % 900))}',
         title: title,
         date: date,
         time: time,
         priority: TaskPriority.values[priorityVal],
-        category: parsed['category']?.toString() ?? 'Inbox',
+        category: category,
         recurrence: parsed['recurrence']?.toString(),
       );
     } catch (e) {
       debugPrint('JSON Parsing failed: $e. Response was: $responseText');
+      return null;
+    }
+  }
+
+  String? _normalizeTime(String time) {
+    try {
+      final t = time.toLowerCase();
+      // If it's already HH:mm
+      if (RegExp(r'^\d{1,2}:\d{2}$').hasMatch(t)) return t;
+      
+      // If it contains AM/PM
+      if (t.contains('am') || t.contains('pm')) {
+        final match = RegExp(r'(\d{1,2})(?::(\d{2}))?\s*(am|pm)').firstMatch(t);
+        if (match != null) {
+          int hour = int.parse(match.group(1)!);
+          final minute = match.group(2) ?? "00";
+          final ampm = match.group(3);
+          
+          if (ampm == 'pm' && hour < 12) hour += 12;
+          if (ampm == 'am' && hour == 12) hour = 0;
+          
+          return '${hour.toString().padLeft(2, '0')}:$minute';
+        }
+      }
+      return time; // Fallback
+    } catch (_) {
       return null;
     }
   }

@@ -35,9 +35,12 @@ class NotificationService {
     );
 
     if (Platform.isAndroid) {
-      await _notificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+      final androidImplementation = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      
+      await androidImplementation?.requestNotificationsPermission();
+      // On Android 14+, exact alarms require special permission
+      await androidImplementation?.requestExactAlarmsPermission();
     }
   }
 

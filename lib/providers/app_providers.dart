@@ -59,6 +59,16 @@ class CategoryFilterNotifier extends Notifier<String> {
   void set(String category) => state = category;
 }
 
+// Navigation Provider (Riverpod 3.x style)
+final navigationProvider = NotifierProvider<NavigationNotifier, int>(NavigationNotifier.new);
+
+class NavigationNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void set(int index) => state = index;
+}
+
 // Tasks Provider
 final tasksProvider = NotifierProvider<TaskNotifier, List<Task>>(TaskNotifier.new);
 

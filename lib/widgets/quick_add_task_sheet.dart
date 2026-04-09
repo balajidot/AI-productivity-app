@@ -51,8 +51,8 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
       _selectedCategory = 'Inbox';
     }
 
-    Future.delayed(const Duration(milliseconds: 100), () {
-      _focusNode.requestFocus();
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (mounted) _focusNode.requestFocus();
     });
   }
 
@@ -321,17 +321,9 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
     }
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surfaceContainer,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 24,
-            offset: const Offset(0, -8),
-          ),
-        ],
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SafeArea(

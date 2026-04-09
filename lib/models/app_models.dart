@@ -45,9 +45,9 @@ class Task {
       description: map['description']?.toString(),
       date: map['date'] != null ? DateTime.tryParse(map['date'].toString()) ?? DateTime.now() : DateTime.now(),
       time: map['time']?.toString(),
-      priority: TaskPriority.values[(map['priority'] as int? ?? 1).clamp(0, 2)],
+      priority: TaskPriority.values[((map['priority'] as num?)?.toInt() ?? 1).clamp(0, 2)],
       category: map['category']?.toString() ?? 'Inbox',
-      status: TaskStatus.values[(map['status'] as int? ?? 0).clamp(0, 2)],
+      status: TaskStatus.values[((map['status'] as num?)?.toInt() ?? 0).clamp(0, 2)],
       recurrence: map['recurrence']?.toString(),
     );
   }
@@ -136,7 +136,7 @@ class Habit {
       id: map['id']?.toString() ?? '',
       name: map['name']?.toString() ?? 'New Habit',
       icon: map['icon']?.toString() ?? 'star',
-      streak: map['streak'] as int? ?? 0,
+      streak: (map['streak'] as num?)?.toInt() ?? 0,
       completedDates: dates,
     );
   }
