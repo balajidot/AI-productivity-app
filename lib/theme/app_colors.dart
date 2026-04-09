@@ -25,6 +25,16 @@ class AppColors {
   static const Color onSurfaceVariant = Color(0xFFADAAAA);
   static const Color outline = Color(0xFF767575);
   static const Color outlineVariant = Color(0x26484847); // 15% opacity as per "Ghost Border" rule
+  static const Color lightOutlineVariant = Color(0x1F000000); // 12% Black for Light Mode
+
+  // Light Mode Palette
+  static const Color lightBackground = Color(0xFFF9F9FF);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightSurfaceContainer = Color(0xFFF1F1F7);
+  static const Color lightOnSurface = Color(0xFF1A1A1C);
+  static const Color lightOnSurfaceVariant = Color(0xFF6B6A71);
+  static const Color lightPrimary = Color(0xFF5D5FEF);
+  static const Color lightSecondary = Color(0xFF7B61FF);
   
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(

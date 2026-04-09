@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 class GlassContainer extends StatelessWidget {
   static const bool enableBlur = true; // Global toggle for performance tuning
@@ -26,17 +25,48 @@ class GlassContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    // Background colors
     Widget content = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: (color ?? AppColors.surfaceVariant).withValues(alpha: opacity),
+        color: (color ?? theme.colorScheme.surfaceContainer).withValues(alpha: opacity),
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: AppColors.outlineVariant,
-          width: 1.0,
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.1),
+          width: 0.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: child,
+      child: Stack(
+        children: [
+          // Subtle inner highlight
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(borderRadius),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.08),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.02),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
     );
 
     if (!enableBlur || !useBlur || blur <= 0) {

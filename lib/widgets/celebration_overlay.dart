@@ -68,11 +68,11 @@ class _CelebrationWidgetState extends State<_CelebrationWidget>
                       height: 80,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFFA5A5FF).withValues(alpha: 0.3),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.check_rounded,
-                        color: Color(0xFFA5A5FF),
+                        color: Theme.of(context).colorScheme.primary,
                         size: 48,
                       ),
                     ),

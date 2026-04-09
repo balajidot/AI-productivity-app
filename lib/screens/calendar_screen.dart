@@ -5,7 +5,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
-import '../theme/app_colors.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/quick_add_task_sheet.dart';
 import '../providers/app_providers.dart';
@@ -31,6 +30,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final selectedDate = _selectedDay ?? DateTime.now();
     final tasksForDay = ref.watch(tasksForDateProvider(
       DateTime(selectedDate.year, selectedDate.month, selectedDate.day),
@@ -41,13 +41,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context),
-            _buildCalendar(context, taskDates),
-            _buildTimelineHeader(context, tasksForDay, selectedDate),
+            _buildHeader(context, theme),
+            _buildCalendar(context, theme, taskDates),
+            _buildTimelineHeader(context, theme, tasksForDay, selectedDate),
             Expanded(
               child: tasksForDay.isEmpty
-                  ? _buildEmptyDayState(context)
-                  : _buildTimelineList(context, tasksForDay),
+                  ? _buildEmptyDayState(context, theme)
+                  : _buildTimelineList(context, theme, tasksForDay),
             ),
           ],
         ),
@@ -55,13 +55,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Schedule', style: Theme.of(context).textTheme.displayLarge),
+          Text('Schedule', style: theme.textTheme.displayLarge),
           Row(
             children: [
               // Week/Month toggle
@@ -81,7 +81,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         ? LucideIcons.columns
                         : LucideIcons.grid,
                     size: 20,
-                    color: AppColors.primary,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ),
@@ -89,10 +89,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               // Add event
               GestureDetector(
                 onTap: () => _addEventOnDate(context),
-                child: const GlassContainer(
-                  padding: EdgeInsets.all(8),
+                child: GlassContainer(
+                  padding: const EdgeInsets.all(8),
                   borderRadius: 8,
-                  child: Icon(LucideIcons.calendarPlus, size: 20),
+                  child: Icon(
+                    LucideIcons.calendarPlus, 
+                    size: 20,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
               ),
             ],
@@ -102,7 +106,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildCalendar(BuildContext context, Set<DateTime> taskDates) {
+  Widget _buildCalendar(BuildContext context, ThemeData theme, Set<DateTime> taskDates) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GlassContainer(
@@ -133,21 +137,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           },
           calendarStyle: CalendarStyle(
             todayDecoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.3),
+              color: theme.colorScheme.primary.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
-            selectedDecoration: const BoxDecoration(
-              color: AppColors.primary,
+            selectedDecoration: BoxDecoration(
+              color: theme.colorScheme.primary,
               shape: BoxShape.circle,
             ),
-            markerDecoration: const BoxDecoration(
-              color: AppColors.tertiary,
+            markerDecoration: BoxDecoration(
+              color: theme.colorScheme.tertiary,
               shape: BoxShape.circle,
             ),
             markerSize: 6,
             markersMaxCount: 1,
             outsideDaysVisible: false,
-            weekendTextStyle: const TextStyle(color: AppColors.onSurfaceVariant),
+            defaultTextStyle: TextStyle(color: theme.colorScheme.onSurface),
+            weekendTextStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
           headerStyle: HeaderStyle(
             formatButtonVisible: false,
@@ -155,21 +160,21 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             titleTextStyle: GoogleFonts.manrope(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.onSurface,
+              color: theme.colorScheme.onSurface,
             ),
-            leftChevronIcon: const Icon(LucideIcons.chevronLeft, color: AppColors.onSurfaceVariant, size: 20),
-            rightChevronIcon: const Icon(LucideIcons.chevronRight, color: AppColors.onSurfaceVariant, size: 20),
+            leftChevronIcon: Icon(LucideIcons.chevronLeft, color: theme.colorScheme.onSurfaceVariant, size: 20),
+            rightChevronIcon: Icon(LucideIcons.chevronRight, color: theme.colorScheme.onSurfaceVariant, size: 20),
           ),
           daysOfWeekStyle: DaysOfWeekStyle(
             weekdayStyle: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppColors.onSurfaceVariant,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
             weekendStyle: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppColors.onSurfaceVariant,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -177,7 +182,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildTimelineHeader(BuildContext context, List<Task> tasks, DateTime selectedDate) {
+  Widget _buildTimelineHeader(BuildContext context, ThemeData theme, List<Task> tasks, DateTime selectedDate) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final selected = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
@@ -198,18 +203,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         children: [
           Text(
             dayLabel,
-            style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.bold),
+            style: GoogleFonts.manrope(
+              fontSize: 18, 
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               '${tasks.length} ${tasks.length == 1 ? 'Task' : 'Tasks'}',
               style: GoogleFonts.inter(
-                color: AppColors.primary,
+                color: theme.colorScheme.primary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -220,7 +229,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildTimelineList(BuildContext context, List<Task> tasks) {
+  Widget _buildTimelineList(BuildContext context, ThemeData theme, List<Task> tasks) {
     // Sort by time
     final sortedTasks = List<Task>.from(tasks);
     sortedTasks.sort((a, b) {
@@ -235,7 +244,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       itemCount: sortedTasks.length,
       itemBuilder: (context, index) {
         final task = sortedTasks[index];
-        return _buildTimelineItem(task, index == sortedTasks.length - 1)
+        return _buildTimelineItem(theme, task, index == sortedTasks.length - 1)
             .animate()
             .fadeIn(delay: (index * 60).ms)
             .slideX(begin: 0.05);
@@ -243,7 +252,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildTimelineItem(Task task, bool isLast) {
+  Widget _buildTimelineItem(ThemeData theme, Task task, bool isLast) {
     final isCompleted = task.status == TaskStatus.completed;
     String timeLabel = 'All Day';
     if (task.time != null) {
@@ -258,13 +267,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     Color priorityColor;
     switch (task.priority) {
       case TaskPriority.high:
-        priorityColor = AppColors.error;
+        priorityColor = theme.colorScheme.error;
         break;
       case TaskPriority.medium:
-        priorityColor = AppColors.secondary;
+        priorityColor = theme.colorScheme.secondary;
         break;
       case TaskPriority.low:
-        priorityColor = AppColors.primary;
+        priorityColor = theme.colorScheme.primary;
         break;
     }
 
@@ -277,7 +286,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             child: Text(
               timeLabel,
               style: GoogleFonts.inter(
-                color: AppColors.onSurfaceVariant,
+                color: theme.colorScheme.onSurfaceVariant,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -289,22 +298,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: isCompleted ? AppColors.primary : priorityColor,
+                  color: isCompleted ? theme.colorScheme.primary : priorityColor,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isCompleted ? AppColors.primary : priorityColor,
+                    color: isCompleted ? theme.colorScheme.primary : priorityColor,
                     width: 2,
                   ),
                 ),
                 child: isCompleted
-                    ? const Icon(Icons.check, size: 8, color: AppColors.background)
+                    ? Icon(Icons.check, size: 8, color: theme.colorScheme.surface)
                     : null,
               ),
               if (!isLast)
                 Expanded(
                   child: Container(
                     width: 2,
-                    color: AppColors.outlineVariant,
+                    color: theme.colorScheme.outlineVariant,
                   ),
                 ),
             ],
@@ -324,7 +333,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                         decoration: isCompleted ? TextDecoration.lineThrough : null,
-                        color: isCompleted ? AppColors.onSurfaceVariant : AppColors.onSurface,
+                        color: isCompleted ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -349,7 +358,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         Text(
                           task.category,
                           style: GoogleFonts.inter(
-                            color: AppColors.onSurfaceVariant,
+                            color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -365,17 +374,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildEmptyDayState(BuildContext context) {
+  Widget _buildEmptyDayState(BuildContext context, ThemeData theme) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(LucideIcons.calendarOff, size: 48, color: AppColors.outline.withValues(alpha: 0.4)),
+          Icon(LucideIcons.calendarOff, size: 48, color: theme.colorScheme.outline.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
           Text(
             'No tasks for this day',
             style: GoogleFonts.inter(
-              color: AppColors.onSurfaceVariant,
+              color: theme.colorScheme.onSurfaceVariant,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -385,7 +394,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             onPressed: () => _addEventOnDate(context),
             icon: const Icon(LucideIcons.plus, size: 18),
             label: const Text('Add Task'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+            style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary),
           ),
         ],
       ),

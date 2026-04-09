@@ -4,7 +4,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/app_models.dart';
-import '../theme/app_colors.dart';
 import '../providers/app_providers.dart';
 import '../services/natural_language_parser.dart';
 
@@ -89,217 +88,22 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
     _onTextChanged(suggestion);
   }
 
-  Future<void> _selectDate() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 1)),
-      lastDate: DateTime.now().add(const Duration(days: 730)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              surface: AppColors.surfaceHighest,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (date != null) setState(() => _selectedDate = date);
-  }
-
-  Future<void> _selectTime() async {
-    final time = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime ?? TimeOfDay.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              surface: AppColors.surfaceHighest,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (time != null) setState(() => _selectedTime = time);
-  }
-
-  void _togglePriority() {
-    setState(() {
-      switch (_selectedPriority) {
-        case TaskPriority.low:
-          _selectedPriority = TaskPriority.medium;
-          break;
-        case TaskPriority.medium:
-          _selectedPriority = TaskPriority.high;
-          break;
-        case TaskPriority.high:
-          _selectedPriority = TaskPriority.low;
-          break;
-      }
-    });
-  }
-
-  void _showCategoryPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Category', style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 16),
-            ...['Inbox', 'Work', 'Personal', 'Health', 'Study', 'Finance'].map((cat) {
-              final isSelected = cat == _selectedCategory;
-              return ListTile(
-                leading: Icon(
-                  _categoryIcon(cat),
-                  color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
-                ),
-                title: Text(cat, style: TextStyle(
-                  color: isSelected ? AppColors.primary : AppColors.onSurface,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                )),
-                trailing: isSelected
-                    ? const Icon(Icons.check_circle, color: AppColors.primary, size: 20)
-                    : null,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                onTap: () {
-                  setState(() => _selectedCategory = cat);
-                  Navigator.pop(ctx);
-                },
-              );
-            }),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showRecurrencePicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Repeat', style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 16),
-            ...[null, 'daily', 'weekly', 'monthly', 'every monday', 'every friday'].map((rec) {
-              final label = rec ?? 'No repeat';
-              final isSelected = rec == _selectedRecurrence;
-              return ListTile(
-                leading: Icon(
-                  rec == null ? LucideIcons.x : LucideIcons.repeat,
-                  color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
-                  size: 20,
-                ),
-                title: Text(
-                  label[0].toUpperCase() + label.substring(1),
-                  style: TextStyle(
-                    color: isSelected ? AppColors.primary : AppColors.onSurface,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-                trailing: isSelected
-                    ? const Icon(Icons.check_circle, color: AppColors.primary, size: 20)
-                    : null,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                onTap: () {
-                  setState(() => _selectedRecurrence = rec);
-                  Navigator.pop(ctx);
-                },
-              );
-            }),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _categoryIcon(String category) {
-    switch (category) {
-      case 'Work': return LucideIcons.briefcase;
-      case 'Personal': return LucideIcons.user;
-      case 'Health': return LucideIcons.heart;
-      case 'Study': return LucideIcons.bookOpen;
-      case 'Finance': return LucideIcons.dollarSign;
-      default: return LucideIcons.inbox;
-    }
-  }
-
-  void _submitTask() {
-    final rawText = _controller.text.trim();
-    if (rawText.isEmpty) return;
-
-    // Parse for clean title
-    final parsed = NaturalLanguageParser.parse(rawText);
-
-    if (isEditing) {
-      final updatedTask = widget.editTask!.copyWith(
-        title: parsed.cleanTitle,
-        date: _selectedDate,
-        time: _selectedTime != null
-            ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}'
-            : null,
-        priority: _selectedPriority,
-        category: _selectedCategory,
-        recurrence: _selectedRecurrence,
-      );
-      ref.read(tasksProvider.notifier).updateTask(updatedTask);
-    } else {
-      final newTask = Task(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        title: parsed.cleanTitle,
-        category: _selectedCategory,
-        priority: _selectedPriority,
-        date: _selectedDate,
-        time: _selectedTime != null
-            ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}'
-            : null,
-        status: TaskStatus.todo,
-        recurrence: _selectedRecurrence,
-      );
-      ref.read(tasksProvider.notifier).addTask(newTask);
-    }
-
-    Navigator.pop(context);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final now = DateTime.now();
 
     // Priority styling
-    Color priorityColor = AppColors.onSurfaceVariant;
+    Color priorityColor = theme.colorScheme.onSurfaceVariant;
     String priorityLabel = 'P2';
     if (_selectedPriority == TaskPriority.high) {
-      priorityColor = AppColors.error;
+      priorityColor = theme.colorScheme.error;
       priorityLabel = 'P1';
     } else if (_selectedPriority == TaskPriority.medium) {
-      priorityColor = AppColors.secondary;
+      priorityColor = theme.colorScheme.secondary;
       priorityLabel = 'P2';
     } else {
-      priorityColor = AppColors.primary;
+      priorityColor = theme.colorScheme.primary;
       priorityLabel = 'P3';
     }
 
@@ -321,9 +125,9 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
     }
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SafeArea(
@@ -336,7 +140,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
               width: 48,
               height: 6,
               decoration: BoxDecoration(
-                color: AppColors.outlineVariant,
+                color: theme.colorScheme.outlineVariant,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -355,7 +159,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                         style: GoogleFonts.manrope(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
                     ),
@@ -368,15 +172,15 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _submitTask(),
                     onChanged: _onTextChanged,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.onSurface,
+                      color: theme.colorScheme.onSurface,
                     ),
                     decoration: InputDecoration(
                       hintText: 'e.g., Team sync tomorrow at 10am @work',
                       hintStyle: TextStyle(
-                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                         fontSize: 16,
                         fontWeight: FontWeight.w400,
                       ),
@@ -402,15 +206,15 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                                  border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
                                 ),
                                 child: Text(
                                   s,
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
-                                    color: AppColors.primary,
+                                    color: theme.colorScheme.primary,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -431,6 +235,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                     child: Row(
                       children: [
                         _buildActionChip(
+                          theme: theme,
                           icon: LucideIcons.calendar,
                           label: dateText,
                           onTap: _selectDate,
@@ -438,6 +243,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                         ),
                         const SizedBox(width: 8),
                         _buildActionChip(
+                          theme: theme,
                           icon: LucideIcons.flag,
                           label: priorityLabel,
                           iconColor: priorityColor,
@@ -446,6 +252,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                         ),
                         const SizedBox(width: 8),
                         _buildActionChip(
+                          theme: theme,
                           icon: LucideIcons.bell,
                           label: _selectedTime?.format(context) ?? 'Set Time',
                           onTap: _selectTime,
@@ -453,6 +260,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                         ),
                         const SizedBox(width: 8),
                         _buildActionChip(
+                          theme: theme,
                           icon: LucideIcons.repeat,
                           label: _selectedRecurrence ?? 'Repeat',
                           onTap: _showRecurrencePicker,
@@ -460,6 +268,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                         ),
                         const SizedBox(width: 8),
                         _buildActionChip(
+                          theme: theme,
                           icon: LucideIcons.tag,
                           onTap: _showCategoryPicker,
                         ),
@@ -467,9 +276,9 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                     ),
                   ),
 
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: Divider(color: AppColors.outlineVariant, height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Divider(color: theme.colorScheme.outlineVariant, height: 1),
                   ),
 
                   // Footer
@@ -481,7 +290,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                         onTap: _showCategoryPicker,
                         child: Row(
                           children: [
-                            Icon(_categoryIcon(_selectedCategory), color: AppColors.onSurfaceVariant, size: 18),
+                            Icon(_categoryIcon(_selectedCategory), color: theme.colorScheme.onSurfaceVariant, size: 18),
                             const SizedBox(width: 8),
                             Text(
                               _selectedCategory.toUpperCase(),
@@ -489,7 +298,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 1.2,
-                                color: AppColors.onSurfaceVariant,
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -500,21 +309,21 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                       Row(
                         children: [
                           IconButton(
-                            icon: const Icon(LucideIcons.x, color: AppColors.onSurfaceVariant, size: 22),
+                            icon: Icon(LucideIcons.x, color: theme.colorScheme.onSurfaceVariant, size: 22),
                             onPressed: () => Navigator.pop(context),
                           ),
                           const SizedBox(width: 4),
                           Container(
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [AppColors.primary, AppColors.primaryContainer],
+                              gradient: LinearGradient(
+                                colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.3),
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -533,16 +342,16 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                                     children: [
                                       Text(
                                         isEditing ? 'Update' : 'Add Task',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: AppColors.background,
+                                          color: theme.colorScheme.onPrimary,
                                           fontSize: 14,
                                         ),
                                       ),
                                       const SizedBox(width: 6),
                                       Icon(
                                         isEditing ? LucideIcons.check : LucideIcons.arrowUp,
-                                        color: AppColors.background.withValues(alpha: 0.9),
+                                        color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
                                         size: 16,
                                       ),
                                     ],
@@ -566,6 +375,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
   }
 
   Widget _buildActionChip({
+    required ThemeData theme,
     required IconData icon,
     String? label,
     Color? iconColor,
@@ -573,8 +383,8 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
     bool isActive = false,
   }) {
     final bgColor = isActive
-        ? AppColors.primary.withValues(alpha: 0.15)
-        : AppColors.surfaceHighest;
+        ? theme.colorScheme.primary.withValues(alpha: 0.15)
+        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
 
     return Material(
       color: bgColor,
@@ -590,7 +400,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isActive ? AppColors.primary.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05),
+              color: isActive ? theme.colorScheme.primary.withValues(alpha: 0.3) : theme.colorScheme.outline.withValues(alpha: 0.1),
             ),
           ),
           child: Row(
@@ -599,7 +409,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
               Icon(
                 icon,
                 size: 16,
-                color: iconColor ?? (isActive ? AppColors.primary : AppColors.onSurfaceVariant),
+                color: iconColor ?? (isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
               ),
               if (label != null) ...[
                 const SizedBox(width: 6),
@@ -608,7 +418,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: isActive ? AppColors.primary : AppColors.onSurfaceVariant,
+                    color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ]
@@ -617,5 +427,187 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
         ),
       ),
     );
+  }
+
+  Future<void> _selectDate() async {
+    final theme = Theme.of(context);
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 730)),
+      builder: (context, child) {
+        return Theme(
+          data: theme,
+          child: child!,
+        );
+      },
+    );
+    if (date != null) setState(() => _selectedDate = date);
+  }
+
+  Future<void> _selectTime() async {
+    final theme = Theme.of(context);
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime ?? TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: theme,
+          child: child!,
+        );
+      },
+    );
+    if (time != null) setState(() => _selectedTime = time);
+  }
+
+  void _showCategoryPicker() {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.colorScheme.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Category', style: theme.textTheme.headlineMedium),
+            const SizedBox(height: 16),
+            ...['Inbox', 'Work', 'Personal', 'Health', 'Study', 'Finance'].map((cat) {
+              final isSelected = cat == _selectedCategory;
+              return ListTile(
+                leading: Icon(
+                  _categoryIcon(cat),
+                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                ),
+                title: Text(cat, style: TextStyle(
+                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                )),
+                trailing: isSelected
+                    ? Icon(Icons.check_circle, color: theme.colorScheme.primary, size: 20)
+                    : null,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                onTap: () {
+                  setState(() => _selectedCategory = cat);
+                  Navigator.pop(ctx);
+                },
+              );
+            }),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRecurrencePicker() {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.colorScheme.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Repeat', style: theme.textTheme.headlineMedium),
+            const SizedBox(height: 16),
+            ...[null, 'daily', 'weekly', 'monthly', 'every monday', 'every friday'].map((rec) {
+              final label = rec ?? 'No repeat';
+              final isSelected = rec == _selectedRecurrence;
+              return ListTile(
+                leading: Icon(
+                  rec == null ? LucideIcons.x : LucideIcons.repeat,
+                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                  size: 20,
+                ),
+                title: Text(
+                  label[0].toUpperCase() + label.substring(1),
+                  style: TextStyle(
+                    color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                trailing: isSelected
+                    ? Icon(Icons.check_circle, color: theme.colorScheme.primary, size: 20)
+                    : null,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                onTap: () {
+                  setState(() => _selectedRecurrence = rec);
+                  Navigator.pop(ctx);
+                },
+              );
+            }),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _togglePriority() {
+    setState(() {
+      switch (_selectedPriority) {
+        case TaskPriority.low:
+          _selectedPriority = TaskPriority.medium;
+          break;
+        case TaskPriority.medium:
+          _selectedPriority = TaskPriority.high;
+          break;
+        case TaskPriority.high:
+          _selectedPriority = TaskPriority.low;
+          break;
+      }
+    });
+  }
+
+  IconData _categoryIcon(String category) {
+    switch (category) {
+      case 'Work':
+        return LucideIcons.briefcase;
+      case 'Personal':
+        return LucideIcons.user;
+      case 'Health':
+        return LucideIcons.heart;
+      case 'Study':
+        return LucideIcons.bookOpen;
+      case 'Finance':
+        return LucideIcons.wallet;
+      default:
+        return LucideIcons.inbox;
+    }
+  }
+
+  void _submitTask() {
+    final title = _controller.text.trim();
+    if (title.isEmpty) return;
+
+    final task = Task(
+      id: isEditing ? widget.editTask!.id : DateTime.now().millisecondsSinceEpoch.toString(),
+      title: title,
+      date: _selectedDate,
+      time: _selectedTime != null ? '${_selectedTime!.hour}:${_selectedTime!.minute}' : null,
+      priority: _selectedPriority,
+      category: _selectedCategory,
+      recurrence: _selectedRecurrence,
+      status: isEditing ? widget.editTask!.status : TaskStatus.todo,
+    );
+
+    if (isEditing) {
+      ref.read(tasksProvider.notifier).updateTask(task);
+    } else {
+      ref.read(tasksProvider.notifier).addTask(task);
+    }
+
+    Navigator.pop(context);
   }
 }

@@ -77,23 +77,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Hero(
                         tag: 'app_logo',
                         child: Container(
-                          width: 120,
-                          height: 120,
+                          width: 140,
+                          height: 140,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.25),
+                                blurRadius: 40,
+                                spreadRadius: -5,
+                              ),
+                            ],
                             border: Border.all(
                               color: AppColors.primary.withValues(alpha: 0.2),
-                              width: 1,
+                              width: 1.5,
                             ),
                           ),
-                          child: Center(
+                          child: ClipOval(
                             child: Image.asset(
                               'assets/images/logo.png',
-                              width: 80,
-                              height: 80,
+                              fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) => const Icon(
                                 LucideIcons.layoutGrid,
-                                size: 48,
+                                size: 56,
                                 color: AppColors.primary,
                               ),
                             ),

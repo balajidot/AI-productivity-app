@@ -5,8 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/app_providers.dart';
 import '../models/message_model.dart';
-import '../theme/app_colors.dart';
 import '../widgets/glass_container.dart';
+import '../widgets/empty_state.dart';
 
 class AIAssistantScreen extends ConsumerStatefulWidget {
   const AIAssistantScreen({super.key});
@@ -43,6 +43,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final messages = ref.watch(chatProvider);
     final isLoading = ref.watch(aiLoadingProvider);
 
@@ -50,44 +51,44 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context),
+            _buildHeader(context, theme),
             Expanded(
               child: messages.isEmpty
-                  ? _buildWelcomeMessage(context)
+                  ? _buildWelcomeMessage(context, theme)
                   : ListView.builder(
                       controller: _scrollController,
                       padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
                       itemCount: messages.length + (isLoading ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (index == messages.length && isLoading) {
-                          return _buildTypingIndicator();
+                          return _buildTypingIndicator(theme);
                         }
                         final msg = messages[index];
-                        return _buildChatBubble(context, msg)
+                        return _buildChatBubble(context, theme, msg)
                             .animate()
                             .fadeIn(duration: 300.ms)
                             .slideY(begin: 0.03);
                       },
                     ),
             ),
-            _buildInputArea(context),
+            _buildInputArea(context, theme),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
       child: Row(
         children: [
-          const GlassContainer(
-            padding: EdgeInsets.all(10),
+          GlassContainer(
+            padding: const EdgeInsets.all(10),
             borderRadius: 14,
-            color: AppColors.tertiary,
+            color: theme.colorScheme.tertiary,
             opacity: 0.2,
-            child: Icon(LucideIcons.sparkles, color: AppColors.tertiary, size: 22),
+            child: Icon(LucideIcons.sparkles, color: theme.colorScheme.tertiary, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -99,7 +100,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
                   style: GoogleFonts.manrope(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.onSurface,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 Row(
@@ -117,7 +118,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
                       'Obsidian AI • Online',
                       style: GoogleFonts.inter(
                         fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -130,10 +131,10 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
             onTap: () {
               ref.read(chatProvider.notifier).clearChat();
             },
-            child: const GlassContainer(
-              padding: EdgeInsets.all(8),
+            child: GlassContainer(
+              padding: const EdgeInsets.all(8),
               borderRadius: 8,
-              child: Icon(LucideIcons.trash2, size: 18, color: AppColors.onSurfaceVariant),
+              child: Icon(LucideIcons.trash2, size: 18, color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
         ],
@@ -141,7 +142,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
     );
   }
 
-  Widget _buildChatBubble(BuildContext context, AIMessage message) {
+  Widget _buildChatBubble(BuildContext context, ThemeData theme, AIMessage message) {
     final isUser = message.role == MessageRole.user;
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -154,14 +155,16 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
           crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             GlassContainer(
-              color: isUser ? AppColors.primary : AppColors.surfaceContainer,
+              color: isUser ? theme.colorScheme.primary : theme.colorScheme.surfaceContainer,
               opacity: isUser ? 0.3 : 0.7,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              borderRadius: isUser ? 18 : 18,
+              borderRadius: 18,
               child: Text(
                 message.text,
                 style: GoogleFonts.inter(
-                  color: AppColors.onSurface,
+                  color: isUser && theme.brightness == Brightness.dark 
+                      ? Colors.white 
+                      : theme.colorScheme.onSurface,
                   fontSize: 14,
                   height: 1.5,
                 ),
@@ -174,7 +177,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
                 _formatTime(message.timestamp),
                 style: GoogleFonts.inter(
                   fontSize: 10,
-                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                 ),
               ),
             ),
@@ -191,23 +194,23 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
     return '$hour:$minute $period';
   }
 
-  Widget _buildTypingIndicator() {
+  Widget _buildTypingIndicator(ThemeData theme) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         child: GlassContainer(
-          color: AppColors.surfaceContainer,
+          color: theme.colorScheme.surfaceContainer,
           opacity: 0.7,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDot(0),
+              _buildDot(theme, 0),
               const SizedBox(width: 4),
-              _buildDot(200),
+              _buildDot(theme, 200),
               const SizedBox(width: 4),
-              _buildDot(400),
+              _buildDot(theme, 400),
             ],
           ),
         ),
@@ -215,12 +218,12 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
     );
   }
 
-  Widget _buildDot(int delayMs) {
+  Widget _buildDot(ThemeData theme, int delayMs) {
     return Container(
       width: 8,
       height: 8,
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.6),
+        color: theme.colorScheme.primary.withValues(alpha: 0.6),
         shape: BoxShape.circle,
       ),
     )
@@ -228,7 +231,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
         .scaleXY(begin: 0.6, end: 1.0, delay: delayMs.ms, duration: 400.ms);
   }
 
-  Widget _buildInputArea(BuildContext context) {
+  Widget _buildInputArea(BuildContext context, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       child: GlassContainer(
@@ -237,15 +240,16 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
         child: Row(
           children: [
             const SizedBox(width: 10),
-            Icon(LucideIcons.paperclip, color: AppColors.onSurfaceVariant, size: 20),
+            Icon(LucideIcons.paperclip, color: theme.colorScheme.onSurfaceVariant, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: TextField(
                 controller: _controller,
+                style: TextStyle(color: theme.colorScheme.onSurface),
                 decoration: InputDecoration(
                   hintText: 'Ask anything...',
                   hintStyle: GoogleFonts.inter(
-                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                     fontSize: 14,
                   ),
                   border: InputBorder.none,
@@ -262,19 +266,19 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, AppColors.primaryContainer],
+                  gradient: LinearGradient(
+                    colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
                   ),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.3),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: const Icon(LucideIcons.send, color: AppColors.background, size: 18),
+                child: Icon(LucideIcons.send, color: theme.colorScheme.onPrimary, size: 18),
               ),
             ),
           ],
@@ -283,58 +287,38 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
     );
   }
 
-  Widget _buildWelcomeMessage(BuildContext context) {
+  Widget _buildWelcomeMessage(BuildContext context, ThemeData theme) {
     final userName = ref.watch(userNameProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const SizedBox(height: 40),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.tertiary.withValues(alpha: 0.1),
-            ),
-            child: const Icon(LucideIcons.sparkles, color: AppColors.tertiary, size: 40),
-          ),
           const SizedBox(height: 20),
-          Text(
-            'Hi $userName! 👋',
-            style: GoogleFonts.manrope(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+          EmptyStateWidget(
+            title: 'Hi $userName! 👋',
+            description: 'I can help you manage tasks, plan your day, and boost productivity.',
+            imagePath: 'assets/images/empty_ai.png',
           ),
-          const SizedBox(height: 8),
-          Text(
-            'I can help you manage tasks, plan your day, and boost productivity.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              color: AppColors.onSurfaceVariant,
-              fontSize: 14,
-              height: 1.5,
-            ),
-          ),
+          const SizedBox(height: 12),
           const SizedBox(height: 32),
 
           // Quick suggestion cards
-          _buildSuggestionCard(
+          _buildSuggestionCard(theme,
             'Plan my day',
             'Get a personalized daily plan based on your tasks',
             LucideIcons.calendar,
           ),
-          _buildSuggestionCard(
+          _buildSuggestionCard(theme,
             'Show my pending tasks',
             'See all tasks that need your attention',
             LucideIcons.clipboardList,
           ),
-          _buildSuggestionCard(
+          _buildSuggestionCard(theme,
             'Give me productivity tips',
             'AI-powered tips to optimize your workflow',
             LucideIcons.lightbulb,
           ),
-          _buildSuggestionCard(
+          _buildSuggestionCard(theme,
             'Help me prioritize',
             'Smart priority suggestions for your tasks',
             LucideIcons.target,
@@ -344,7 +328,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
     );
   }
 
-  Widget _buildSuggestionCard(String title, String subtitle, IconData icon) {
+  Widget _buildSuggestionCard(ThemeData theme, String title, String subtitle, IconData icon) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GestureDetector(
@@ -356,7 +340,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Icon(icon, color: AppColors.primary, size: 20),
+              Icon(icon, color: theme.colorScheme.primary, size: 20),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -367,20 +351,20 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
                       style: GoogleFonts.inter(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: AppColors.onSurface,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       subtitle,
                       style: GoogleFonts.inter(
                         fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(LucideIcons.chevronRight, color: AppColors.onSurfaceVariant, size: 18),
+              Icon(LucideIcons.chevronRight, color: theme.colorScheme.onSurfaceVariant, size: 18),
             ],
           ),
         ),

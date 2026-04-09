@@ -73,7 +73,6 @@ Keep responses under 150 words unless detailed explanation is needed.
   }
 
   Future<String> _getNvidiaChatResponse(String prompt, {List<Task>? tasks}) async {
-    debugPrint('Calling NVIDIA NIM for chat...');
     try {
       String contextPrompt = prompt;
       if (tasks != null && tasks.isNotEmpty) {
@@ -175,7 +174,6 @@ Return ONLY a valid JSON object:
   }
 
   Future<Task?> _parseTaskWithNvidia(String text) async {
-    debugPrint('Calling NVIDIA NIM for NLP parsing...');
     try {
       final prompt = 'Parse this text into a JSON task: "$text". Date today: ${DateTime.now().toString().split(' ')[0]}. Return ONLY raw JSON like {"title":"...","date":"YYYY-MM-DD","time":"HH:mm" or null,"priority":0/1/2,"category":"..."}.';
       

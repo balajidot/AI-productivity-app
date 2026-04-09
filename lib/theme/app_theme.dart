@@ -99,6 +99,152 @@ class AppTheme {
           );
         }),
       ),
+      
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.surfaceContainer,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: GoogleFonts.manrope(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: AppColors.onSurface,
+        ),
+        contentTextStyle: GoogleFonts.inter(
+          fontSize: 14,
+          color: AppColors.onSurfaceVariant,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: AppColors.surfaceContainer,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
+    );
+  }
+
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: AppColors.lightBackground,
+      colorScheme: ColorScheme.light(
+        primary: AppColors.lightPrimary,
+        onPrimary: Colors.white,
+        secondary: AppColors.lightSecondary,
+        tertiary: AppColors.tertiary,
+        error: AppColors.errorDim,
+        surface: AppColors.lightSurface,
+        onSurface: AppColors.lightOnSurface,
+        surfaceContainer: AppColors.lightSurfaceContainer,
+        surfaceContainerLow: AppColors.lightSurface,
+        surfaceContainerHigh: AppColors.lightSurfaceContainer.withValues(alpha: 0.8),
+        onSurfaceVariant: AppColors.lightOnSurfaceVariant,
+        outline: AppColors.lightOutlineVariant.withValues(alpha: 0.5),
+        outlineVariant: AppColors.lightOutlineVariant,
+      ),
+      
+      textTheme: TextTheme(
+        displayLarge: GoogleFonts.manrope(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: AppColors.lightOnSurface,
+        ),
+        headlineLarge: GoogleFonts.manrope(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: AppColors.lightOnSurface,
+        ),
+        headlineMedium: GoogleFonts.manrope(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.lightOnSurface,
+        ),
+        bodyLarge: GoogleFonts.inter(
+          fontSize: 16,
+          color: AppColors.lightOnSurface,
+          height: 1.5,
+        ),
+        bodyMedium: GoogleFonts.inter(
+          fontSize: 14,
+          color: AppColors.lightOnSurfaceVariant,
+          height: 1.5,
+        ),
+        labelLarge: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: AppColors.lightOnSurface,
+        ),
+      ),
+      
+      cardTheme: CardThemeData(
+        color: AppColors.lightSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.lightSurfaceContainer,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: AppColors.lightPrimary, width: 1),
+        ),
+        hintStyle: GoogleFonts.inter(
+          color: AppColors.lightOnSurfaceVariant,
+          fontSize: 14,
+        ),
+      ),
+      
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.lightSurface,
+        indicatorColor: AppColors.lightPrimary.withValues(alpha: 0.1),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.lightPrimary,
+            );
+          }
+          return GoogleFonts.inter(
+            fontSize: 12,
+            color: AppColors.lightOnSurfaceVariant,
+          );
+        }),
+      ),
+      
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.lightSurface,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: GoogleFonts.manrope(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: AppColors.lightOnSurface,
+        ),
+        contentTextStyle: GoogleFonts.inter(
+          fontSize: 14,
+          color: AppColors.lightOnSurfaceVariant,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: AppColors.lightSurface,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
     );
   }
 }

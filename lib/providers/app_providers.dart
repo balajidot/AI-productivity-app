@@ -30,6 +30,24 @@ final userPhotoProvider = Provider<String?>((ref) {
   return user?.photoURL;
 });
 
+final userEmailProvider = Provider<String>((ref) {
+  final user = ref.watch(currentUserProvider);
+  return user?.email ?? 'No email available';
+});
+
+// App Settings Provider
+final appSettingsProvider = NotifierProvider<AppSettingsNotifier, AppSettings>(AppSettingsNotifier.new);
+
+class AppSettingsNotifier extends Notifier<AppSettings> {
+  @override
+  AppSettings build() => const AppSettings();
+
+  void updateSmartAnalysis(bool value) => state = state.copyWith(smartAnalysis: value);
+  void updateNotifications(bool value) => state = state.copyWith(notificationsEnabled: value);
+  void updateAITone(String value) => state = state.copyWith(aiTone: value);
+  void updateTheme(String value) => state = state.copyWith(themeMode: value);
+}
+
 // Real-time Cloud Streams
 final tasksStreamProvider = StreamProvider<List<Task>>((ref) {
   final firestore = ref.watch(firestoreServiceProvider);
@@ -59,6 +77,16 @@ class CategoryFilterNotifier extends Notifier<String> {
   void set(String category) => state = category;
 }
 
+// Search Query Provider
+final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
+
+class SearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void set(String query) => state = query;
+}
+
 // Navigation Provider (Riverpod 3.x style)
 final navigationProvider = NotifierProvider<NavigationNotifier, int>(NavigationNotifier.new);
 
@@ -76,9 +104,22 @@ final tasksProvider = NotifierProvider<TaskNotifier, List<Task>>(TaskNotifier.ne
 final filteredTasksProvider = Provider<List<Task>>((ref) {
   final tasks = ref.watch(tasksProvider);
   final category = ref.watch(selectedCategoryProvider);
+  final search = ref.watch(searchQueryProvider).toLowerCase();
 
-  if (category == 'All') return tasks;
-  return tasks.where((t) => t.category == category).toList();
+  var filtered = tasks;
+
+  if (category != 'All') {
+    filtered = filtered.where((t) => t.category == category).toList();
+  }
+
+  if (search.isNotEmpty) {
+    filtered = filtered.where((t) => 
+      t.title.toLowerCase().contains(search) || 
+      t.category.toLowerCase().contains(search)
+    ).toList();
+  }
+
+  return filtered;
 });
 
 // Active Tasks (non-completed)

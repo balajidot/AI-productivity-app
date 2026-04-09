@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -6,8 +7,9 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_container.dart';
 import '../providers/app_providers.dart';
-import '../models/app_models.dart';
-import '../providers/auth_provider.dart';
+import '../widgets/task_card.dart';
+import '../widgets/section_header.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -38,8 +40,10 @@ class HomeScreen extends ConsumerWidget {
     }
   }
 
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final userName = ref.watch(userNameProvider);
     final userPhoto = ref.watch(userPhotoProvider);
     final stats = ref.watch(taskStatsProvider);
@@ -61,6 +65,27 @@ class HomeScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Hero(
+                          tag: 'app_logo',
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: ClipOval(
+                              child: Image.asset(
+                                'assets/images/logo.png',
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         Text(
                           '${_getGreeting()}, $userName.',
                           style: Theme.of(context).textTheme.displayLarge,
@@ -70,21 +95,11 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: 16),
                   GestureDetector(
-                    onTap: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Sign Out'),
-                          content: const Text('Are you sure you want to log out?'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sign Out')),
-                          ],
-                        ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
                       );
-                      if (confirm == true) {
-                        ref.read(authServiceProvider).signOut();
-                      }
                     },
                     child: Hero(
                       tag: 'user_avatar',
@@ -93,7 +108,7 @@ class HomeScreen extends ConsumerWidget {
                         height: 50,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
+                          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3), width: 2),
                           image: userPhoto != null 
                             ? DecorationImage(image: NetworkImage(userPhoto), fit: BoxFit.cover)
                             : null,
@@ -109,15 +124,15 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 _getFocusMessage(),
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.onSurfaceVariant,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
               const SizedBox(height: 32),
 
               // Stats Cards Row
               SizedBox(
-                height: 130, // Increased from 100 to 130 to accommodate larger fonts
+                height: 130,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -128,6 +143,10 @@ class HomeScreen extends ConsumerWidget {
                         '${stats['todayCompleted']}/${stats['todayTotal']}',
                         LucideIcons.checkCircle,
                         AppColors.primary,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          ref.read(navigationProvider.notifier).set(1);
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -138,6 +157,10 @@ class HomeScreen extends ConsumerWidget {
                         '${stats['overdue']}',
                         LucideIcons.alertCircle,
                         stats['overdue']! > 0 ? AppColors.error : AppColors.primary,
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          ref.read(navigationProvider.notifier).set(1);
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -148,6 +171,10 @@ class HomeScreen extends ConsumerWidget {
                         '${stats['completed']}',
                         LucideIcons.trophy,
                         AppColors.tertiary,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          ref.read(navigationProvider.notifier).set(1);
+                        },
                       ),
                     ),
                   ],
@@ -157,74 +184,38 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 32),
 
               // AI Insight Card
-              Consumer(
-                builder: (context, ref, child) {
-                  final metrics = ref.watch(productivityMetricsProvider);
-                  final growth = double.tryParse(metrics['growth'] ?? '0') ?? 0;
-                  
-                  String insight = stats['todayPending']! > 0
-                      ? '${stats['todayPending']} tasks remaining. ${stats['todayCompleted']! > 0 ? "You're doing great! " : ""}Keep at it.'
-                      : stats['todayTotal']! > 0
-                          ? '🎉 Day complete! You hit your peak focus today.'
-                          : 'Plan your day to stay ahead.';
-                  
-                  if (growth > 0) insight = "🚀 You're $growth% more productive today! Keep this momentum.";
-
-                  return GlassContainer(
-                    color: AppColors.tertiary,
-                    opacity: 0.1,
-                    child: Row(
-                      children: [
-                        const Icon(LucideIcons.zap, color: AppColors.tertiary, size: 24),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            insight,
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.95, 0.95)),
+              _buildAIInsightCard(theme, stats, ref),
 
               const SizedBox(height: 32),
 
               // Overdue Section
               if (overdueTasks.isNotEmpty) ...[
-                _buildSectionHeader(
-                  context,
-                  'Overdue',
-                  badgeCount: overdueTasks.length,
-                  onTap: () => ref.read(navigationProvider.notifier).set(1),
+                SectionHeader(
+                  title: 'Overdue', 
+                  color: AppColors.error, 
+                  count: overdueTasks.length
                 ),
-                const SizedBox(height: 12),
-                ...overdueTasks.map((task) => _buildTaskItem(context, ref, task, isOverdue: true)),
+                ...overdueTasks.map((task) => TaskCard(task: task, isOverdue: true)),
                 const SizedBox(height: 24),
               ],
 
               // Today's Tasks
-              _buildSectionHeader(
-                context,
-                "Today's Flow",
-                onTap: () => ref.read(navigationProvider.notifier).set(1),
+              SectionHeader(
+                title: "Today's Flow", 
+                color: AppColors.primary, 
+                count: todayTasks.length
               ),
-              const SizedBox(height: 12),
               if (todayTasks.isEmpty)
                 GlassContainer(
                   child: Row(
                     children: [
-                      Icon(LucideIcons.sunrise, color: AppColors.onSurfaceVariant.withValues(alpha: 0.5), size: 20),
+                      Icon(LucideIcons.sunrise, color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5), size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'No tasks for today. Tap + to add one!',
                           style: GoogleFonts.inter(
-                            color: AppColors.onSurfaceVariant,
+                            color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 14,
                           ),
                         ),
@@ -234,13 +225,16 @@ class HomeScreen extends ConsumerWidget {
                 )
               else
                 Column(
-                  children: todayTasks.map((task) => _buildTaskItem(context, ref, task)).toList(),
+                  children: todayTasks.map((task) => TaskCard(task: task)).toList(),
                 ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.05),
 
               const SizedBox(height: 32),
 
               // Quick Actions
-              _buildSectionHeader(context, 'Quick Actions'),
+              Text(
+                'Quick Actions',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -251,6 +245,7 @@ class HomeScreen extends ConsumerWidget {
                       'Add Task',
                       AppColors.primary,
                       () {
+                        HapticFeedback.lightImpact();
                         ref.read(navigationProvider.notifier).set(1);
                       },
                     ),
@@ -263,6 +258,7 @@ class HomeScreen extends ConsumerWidget {
                       'Ask AI',
                       AppColors.tertiary,
                       () {
+                        HapticFeedback.lightImpact();
                         ref.read(navigationProvider.notifier).set(3);
                       },
                     ),
@@ -276,174 +272,87 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, String label, String value, IconData icon, Color color) {
-    return GlassContainer(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(height: 8),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    value,
-                    style: GoogleFonts.manrope(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.onSurface,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(BuildContext context, String title, {int? badgeCount, VoidCallback? onTap}) {
+  Widget _buildStatCard(BuildContext context, String label, String value, IconData icon, Color color, {VoidCallback? onTap}) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              if (badgeCount != null) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '$badgeCount',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.error,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          Icon(LucideIcons.chevronRight, color: AppColors.onSurfaceVariant, size: 20),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTaskItem(BuildContext context, WidgetRef ref, Task task, {bool isOverdue = false}) {
-    final isCompleted = task.status == TaskStatus.completed;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
       child: GlassContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        useBlur: false, // Performance optimize for list items
-        child: Row(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Checkbox
-            GestureDetector(
-              onTap: () => ref.read(tasksProvider.notifier).toggleTask(task.id),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isCompleted
-                        ? AppColors.primary
-                        : isOverdue
-                            ? AppColors.error
-                            : AppColors.outline,
-                    width: 2,
-                  ),
-                  color: isCompleted ? AppColors.primary.withValues(alpha: 0.2) : Colors.transparent,
-                ),
-                child: isCompleted
-                    ? const Icon(Icons.check, size: 14, color: AppColors.primary)
-                    : null,
-              ),
-            ),
-            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    task.title,
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 15,
-                      decoration: isCompleted ? TextDecoration.lineThrough : null,
-                      color: isCompleted
-                          ? AppColors.onSurfaceVariant
-                          : isOverdue
-                              ? AppColors.error
-                              : AppColors.onSurface,
-                    ),
-                  ),
-                  if (task.time != null)
-                    Text(
-                      task.time!,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
+                  Icon(icon, color: color, size: 20),
+                  const SizedBox(height: 8),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      value,
+                      style: GoogleFonts.manrope(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
-            _buildPriorityDot(task.priority),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       ),
+    ).animate(onPlay: (c) => c.stop()).scale(
+      begin: const Offset(1, 1),
+      end: const Offset(0.96, 0.96),
+      duration: 100.ms,
     );
   }
+  Widget _buildAIInsightCard(ThemeData theme, Map<String, int> stats, WidgetRef ref) {
+    final metrics = ref.watch(productivityMetricsProvider);
+    final growth = double.tryParse(metrics['growth'] ?? '0.0') ?? 0.0;
+    
+    String insight = stats['todayPending']! > 0
+        ? '${stats['todayPending']} tasks remaining. ${stats['todayCompleted']! > 0 ? "You're doing great! " : ""}Keep at it.'
+        : stats['todayTotal']! > 0
+            ? '🎉 Day complete! You hit your peak focus today.'
+            : 'Plan your day to stay ahead.';
+    
+    if (growth > 0) insight = "🚀 You're $growth% more productive today! Keep this momentum.";
 
-  Widget _buildPriorityDot(TaskPriority priority) {
-    Color color;
-    switch (priority) {
-      case TaskPriority.high:
-        color = AppColors.error;
-        break;
-      case TaskPriority.medium:
-        color = AppColors.secondary;
-        break;
-      case TaskPriority.low:
-        color = AppColors.primary;
-        break;
-    }
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-    );
+    return GlassContainer(
+      color: theme.colorScheme.tertiary,
+      opacity: 0.1,
+      child: Row(
+        children: [
+          Icon(LucideIcons.zap, color: theme.colorScheme.tertiary, size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              insight,
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.95, 0.95));
   }
 
   Widget _buildQuickAction(BuildContext context, IconData icon, String label, Color color, VoidCallback onTap) {

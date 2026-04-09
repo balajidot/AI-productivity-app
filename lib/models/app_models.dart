@@ -1,4 +1,25 @@
+import 'package:flutter/material.dart';
+
 enum TaskPriority { low, medium, high }
+
+extension TaskPriorityExtension on TaskPriority {
+  String get label {
+    switch (this) {
+      case TaskPriority.high: return 'High';
+      case TaskPriority.medium: return 'Medium';
+      case TaskPriority.low: return 'Low';
+    }
+  }
+
+  static Color getColor(TaskPriority priority) {
+    switch (priority) {
+      case TaskPriority.high: return const Color(0xFFFF5252);
+      case TaskPriority.medium: return const Color(0xFFFFB74D);
+      case TaskPriority.low: return const Color(0xFF64B5F6);
+    }
+  }
+}
+
 enum TaskStatus { todo, inProgress, completed }
 
 class Task {
@@ -75,6 +96,30 @@ class Task {
     );
   }
 
+  String get priorityLabel => priority.label;
+  Color get priorityColor => TaskPriorityExtension.getColor(priority);
+
+  String get formattedTime {
+    if (time == null) return '';
+    final parts = time!.split(':');
+    final hour = int.parse(parts[0]);
+    final minute = parts[1];
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return '$displayHour:$minute $period';
+  }
+
+  String get displayDate {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final taskDate = DateTime(date.year, date.month, date.day);
+
+    if (taskDate == today) return 'Today';
+    if (taskDate == today.add(const Duration(days: 1))) return 'Tomorrow';
+    if (taskDate == today.subtract(const Duration(days: 1))) return 'Yesterday';
+    return '${date.day}/${date.month}';
+  }
+
   bool get isToday {
     final now = DateTime.now();
     return date.year == now.year && date.month == now.month && date.day == now.day;
@@ -138,6 +183,34 @@ class Habit {
       icon: map['icon']?.toString() ?? 'star',
       streak: (map['streak'] as num?)?.toInt() ?? 0,
       completedDates: dates,
+    );
+  }
+}
+
+class AppSettings {
+  final bool smartAnalysis;
+  final bool notificationsEnabled;
+  final String aiTone;
+  final String themeMode; // 'Light', 'Dark', 'System'
+
+  const AppSettings({
+    this.smartAnalysis = true,
+    this.notificationsEnabled = true,
+    this.aiTone = 'Professional',
+    this.themeMode = 'System',
+  });
+
+  AppSettings copyWith({
+    bool? smartAnalysis,
+    bool? notificationsEnabled,
+    String? aiTone,
+    String? themeMode,
+  }) {
+    return AppSettings(
+      smartAnalysis: smartAnalysis ?? this.smartAnalysis,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      aiTone: aiTone ?? this.aiTone,
+      themeMode: themeMode ?? this.themeMode,
     );
   }
 }

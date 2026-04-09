@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../theme/app_colors.dart';
+import 'package:animations/animations.dart';
 import '../screens/home_screen.dart';
 import '../screens/tasks_screen.dart';
 import '../screens/calendar_screen.dart';
@@ -37,6 +37,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final selectedIndex = ref.watch(navigationProvider);
 
     // Deep Bug Check: Add global error listeners
@@ -46,7 +47,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           SnackBar(
             content: Text('Sync Error (Tasks): ${next.error}'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: AppColors.error,
+            backgroundColor: theme.colorScheme.error,
           ),
         );
       }
@@ -58,46 +59,57 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           SnackBar(
             content: Text('Sync Error (Habits): ${next.error}'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: AppColors.error,
+            backgroundColor: theme.colorScheme.error,
           ),
         );
       }
     });
 
     return Scaffold(
-      body: IndexedStack(
-        index: selectedIndex,
-        children: _screens,
+      body: PageTransitionSwitcher(
+        duration: const Duration(milliseconds: 300),
+        transitionBuilder: (child, animation, secondaryAnimation) {
+          return FadeThroughTransition(
+            animation: animation,
+            secondaryAnimation: secondaryAnimation,
+            fillColor: Colors.transparent,
+            child: child,
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey<int>(selectedIndex),
+          child: _screens[selectedIndex],
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) {
           ref.read(navigationProvider.notifier).set(index);
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(LucideIcons.home),
-            selectedIcon: Icon(LucideIcons.home, color: AppColors.primary),
+            icon: const Icon(LucideIcons.home),
+            selectedIcon: Icon(LucideIcons.home, color: theme.colorScheme.primary),
             label: 'Focus',
           ),
           NavigationDestination(
-            icon: Icon(LucideIcons.checkSquare),
-            selectedIcon: Icon(LucideIcons.checkSquare, color: AppColors.primary),
+            icon: const Icon(LucideIcons.checkSquare),
+            selectedIcon: Icon(LucideIcons.checkSquare, color: theme.colorScheme.primary),
             label: 'Tasks',
           ),
           NavigationDestination(
-            icon: Icon(LucideIcons.calendar),
-            selectedIcon: Icon(LucideIcons.calendar, color: AppColors.primary),
+            icon: const Icon(LucideIcons.calendar),
+            selectedIcon: Icon(LucideIcons.calendar, color: theme.colorScheme.primary),
             label: 'Schedule',
           ),
           NavigationDestination(
-            icon: Icon(LucideIcons.messageSquare),
-            selectedIcon: Icon(LucideIcons.messageSquare, color: AppColors.primary),
+            icon: const Icon(LucideIcons.messageSquare),
+            selectedIcon: Icon(LucideIcons.messageSquare, color: theme.colorScheme.primary),
             label: 'AI',
           ),
           NavigationDestination(
-            icon: Icon(LucideIcons.barChart2),
-            selectedIcon: Icon(LucideIcons.barChart2, color: AppColors.primary),
+            icon: const Icon(LucideIcons.barChart2),
+            selectedIcon: Icon(LucideIcons.barChart2, color: theme.colorScheme.primary),
             label: 'Insights',
           ),
         ],
@@ -106,8 +118,8 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           ? null
           : FloatingActionButton(
               onPressed: _showAddTaskModal,
-              backgroundColor: AppColors.primary,
-              child: const Icon(LucideIcons.plus, color: AppColors.background),
+              backgroundColor: theme.colorScheme.primary,
+              child: Icon(LucideIcons.plus, color: theme.colorScheme.onPrimary),
             ),
     );
   }
