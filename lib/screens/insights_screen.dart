@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_container.dart';
+import '../providers/app_providers.dart';
 
-class InsightsScreen extends StatelessWidget {
+class InsightsScreen extends ConsumerWidget {
   const InsightsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final metrics = ref.watch(productivityMetricsProvider);
+    final weeklyProgress = metrics['weeklyProgress'] as List<double>;
+    final categoryDist = metrics['categoryDistribution'] as Map<String, double>;
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -27,20 +33,38 @@ class InsightsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               
-              _buildMetricCard(context, 'Deep Work Hours', '32h', '+12%', LucideIcons.clock),
+              _buildMetricCard(
+                context, 
+                'Focus Hours', 
+                '${metrics['totalHours']}h', 
+                '${metrics['growth']}%', 
+                LucideIcons.clock,
+                isGrowth: double.parse(metrics['growth']) >= 0,
+              ),
               const SizedBox(height: 24),
               
-              _buildChartSection(context),
+              _buildChartSection(context, weeklyProgress),
               const SizedBox(height: 32),
               
-              _buildAIRecommendation(context),
+              _buildAIRecommendation(context, metrics),
               const SizedBox(height: 32),
               
               _buildSectionHeader(context, 'Category Split'),
               const SizedBox(height: 16),
-              _buildCategoryBar(context, 'Development', 0.6, AppColors.primary),
-              _buildCategoryBar(context, 'Planning', 0.25, AppColors.secondary),
-              _buildCategoryBar(context, 'Meetings', 0.15, AppColors.tertiary),
+              if (categoryDist.isEmpty)
+                const Text('Add tasks to see distribution'),
+              ...categoryDist.entries.map((e) {
+                Color col;
+                switch (e.key) {
+                  case 'Work': col = AppColors.primary; break;
+                  case 'Personal': col = AppColors.secondary; break;
+                  case 'Health': col = AppColors.tertiary; break;
+                  case 'Study': col = Colors.orangeAccent; break;
+                  case 'Finance': col = Colors.greenAccent; break;
+                  default: col = AppColors.outline;
+                }
+                return _buildCategoryBar(context, e.key, e.value, col);
+              }),
             ],
           ),
         ),
@@ -48,7 +72,7 @@ class InsightsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricCard(BuildContext context, String title, String val, String change, IconData icon) {
+  Widget _buildMetricCard(BuildContext context, String title, String val, String change, IconData icon, {bool isGrowth = true}) {
     return GlassContainer(
       child: Row(
         children: [
@@ -66,12 +90,16 @@ class InsightsScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
+              color: (isGrowth ? Colors.green : Colors.red).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              change,
-              style: const TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold),
+              (isGrowth ? '+' : '') + change,
+              style: TextStyle(
+                color: isGrowth ? Colors.greenAccent : Colors.redAccent, 
+                fontSize: 12, 
+                fontWeight: FontWeight.bold
+              ),
             ),
           ),
         ],
@@ -79,14 +107,17 @@ class InsightsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildChartSection(BuildContext context) {
+  Widget _buildChartSection(BuildContext context, List<double> values) {
+    // Generate spots from values
+    final spots = values.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(context, 'Focus Over Time'),
+        _buildSectionHeader(context, 'Weekly Completion'),
         const SizedBox(height: 20),
         SizedBox(
-          height: 200,
+          height: 180,
           child: LineChart(
             LineChartData(
               gridData: const FlGridData(show: false),
@@ -94,23 +125,30 @@ class InsightsScreen extends StatelessWidget {
               borderData: FlBorderData(show: false),
               lineBarsData: [
                 LineChartBarData(
-                  spots: const [
-                    FlSpot(0, 3),
-                    FlSpot(2.6, 2),
-                    FlSpot(4.9, 5),
-                    FlSpot(6.8, 3.1),
-                    FlSpot(8, 4),
-                    FlSpot(9.5, 3),
-                    FlSpot(11, 4),
-                  ],
+                  spots: spots.isEmpty ? [const FlSpot(0, 0)] : spots,
                   isCurved: true,
                   color: AppColors.primary,
-                  barWidth: 3,
+                  barWidth: 4,
                   isStrokeCapRound: true,
-                  dotData: const FlDotData(show: false),
+                  dotData: FlDotData(
+                    show: true,
+                    getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                      radius: 4,
+                      color: AppColors.background,
+                      strokeWidth: 2,
+                      strokeColor: AppColors.primary,
+                    ),
+                  ),
                   belowBarData: BarAreaData(
                     show: true,
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withValues(alpha: 0.2),
+                        AppColors.primary.withValues(alpha: 0.0),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                   ),
                 ),
               ],
@@ -121,17 +159,25 @@ class InsightsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAIRecommendation(BuildContext context) {
+  Widget _buildAIRecommendation(BuildContext context, Map<String, dynamic> metrics) {
+    final growth = double.tryParse(metrics['growth'] ?? '0') ?? 0;
+    String advice = "Start completing tasks to get AI-powered productivity advice.";
+    if (growth > 0) {
+      advice = "Your productivity is up ${metrics['growth']}%! Staying consistent with your current rhythm is key.";
+    } else if (metrics['totalHours'] != '0.0') {
+      advice = "Try breaking down large tasks into smaller focus blocks to boost your completion rate.";
+    }
+
     return GlassContainer(
       color: AppColors.tertiary,
       opacity: 0.1,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(LucideIcons.sparkles, color: AppColors.tertiary, size: 20),
-              const SizedBox(width: 8),
+              Icon(LucideIcons.sparkles, color: AppColors.tertiary, size: 20),
+              SizedBox(width: 8),
               Text(
                 'NVIDIA AI ADVICE',
                 style: TextStyle(
@@ -144,9 +190,9 @@ class InsightsScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Switching to 90-minute Pomodoro cycles has increased your sustained focus by 23%. Stay in this rhythm.',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          Text(
+            advice,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -161,6 +207,7 @@ class InsightsScreen extends StatelessWidget {
   }
 
   Widget _buildCategoryBar(BuildContext context, String label, double perc, Color color) {
+    if (perc <= 0) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(

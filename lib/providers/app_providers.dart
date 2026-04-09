@@ -41,27 +41,39 @@ final filteredTasksProvider = Provider<List<Task>>((ref) {
   return tasks.where((t) => t.category == category).toList();
 });
 
-// Today's Tasks
-final todayTasksProvider = Provider<List<Task>>((ref) {
+// Active Tasks (non-completed)
+final activeTasksProvider = Provider<List<Task>>((ref) {
   final tasks = ref.watch(filteredTasksProvider);
+  return tasks.where((t) => t.status != TaskStatus.completed).toList();
+});
+
+// Completed Tasks
+final completedTasksProvider = Provider<List<Task>>((ref) {
+  final tasks = ref.watch(filteredTasksProvider);
+  return tasks.where((t) => t.status == TaskStatus.completed).toList();
+});
+
+// Today's Active Tasks
+final todayTasksProvider = Provider<List<Task>>((ref) {
+  final tasks = ref.watch(activeTasksProvider);
   return tasks.where((t) => t.isToday).toList();
 });
 
-// Tomorrow's Tasks
+// Tomorrow's Active Tasks
 final tomorrowTasksProvider = Provider<List<Task>>((ref) {
-  final tasks = ref.watch(filteredTasksProvider);
+  final tasks = ref.watch(activeTasksProvider);
   return tasks.where((t) => t.isTomorrow).toList();
 });
 
-// Overdue Tasks
+// Overdue Active Tasks
 final overdueTasksProvider = Provider<List<Task>>((ref) {
-  final tasks = ref.watch(filteredTasksProvider);
+  final tasks = ref.watch(activeTasksProvider);
   return tasks.where((t) => t.isOverdue).toList();
 });
 
-// Upcoming Tasks
+// Upcoming Active Tasks
 final upcomingTasksProvider = Provider<List<Task>>((ref) {
-  final tasks = ref.watch(filteredTasksProvider);
+  final tasks = ref.watch(activeTasksProvider);
   return tasks.where((t) => t.isUpcoming).toList();
 });
 
@@ -98,6 +110,57 @@ final taskStatsProvider = Provider<Map<String, int>>((ref) {
     'todayCompleted': todayTasks.where((t) => t.status == TaskStatus.completed).length,
     'todayPending': todayTasks.where((t) => t.status != TaskStatus.completed).length,
     'overdue': tasks.where((t) => t.isOverdue).length,
+  };
+});
+
+// Advanced Productivity Metrics
+final productivityMetricsProvider = Provider<Map<String, dynamic>>((ref) {
+  final tasks = ref.watch(tasksProvider);
+  final now = DateTime.now();
+  
+  // 1. Completion rate last 7 days
+  final last7Days = List.generate(7, (i) => DateTime(now.year, now.month, now.day).subtract(Duration(days: i))).reversed.toList();
+  final dailyCompletionData = last7Days.map((date) {
+    return tasks.where((t) => 
+      t.date.year == date.year && t.date.month == date.month && t.date.day == date.day && t.status == TaskStatus.completed
+    ).length.toDouble();
+  }).toList();
+
+  // 2. Category Split
+  final categories = ['Work', 'Personal', 'Health', 'Study', 'Finance', 'Inbox'];
+  final categoryDistribution = <String, double>{};
+  final totalTasks = tasks.length;
+  if (totalTasks > 0) {
+    for (final cat in categories) {
+      final count = tasks.where((t) => t.category == cat).length;
+      categoryDistribution[cat] = count / totalTasks;
+    }
+  }
+
+  // 3. Estimated Focus Hours (Each task ~ 45 mins)
+  final completedTotal = tasks.where((t) => t.status == TaskStatus.completed).length;
+  final estimatedHours = (completedTotal * 0.75).toStringAsFixed(1);
+  
+  // 4. Comparison (mocked for now but based on recent completions)
+  final completedLast24h = tasks.where((t) => 
+    t.status == TaskStatus.completed && t.date.isAfter(now.subtract(const Duration(days: 1)))
+  ).length;
+  final completedPrev24h = tasks.where((t) => 
+    t.status == TaskStatus.completed && 
+    t.date.isBefore(now.subtract(const Duration(days: 1))) &&
+    t.date.isAfter(now.subtract(const Duration(days: 2)))
+  ).length;
+  
+  double growth = 0;
+  if (completedPrev24h > 0) {
+    growth = ((completedLast24h - completedPrev24h) / completedPrev24h) * 100;
+  }
+
+  return {
+    'weeklyProgress': dailyCompletionData, // [count1, count2, ...]
+    'categoryDistribution': categoryDistribution,
+    'totalHours': estimatedHours,
+    'growth': growth.toStringAsFixed(0),
   };
 });
 

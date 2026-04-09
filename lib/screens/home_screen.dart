@@ -72,65 +72,79 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 32),
 
               // Stats Cards Row
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      context,
-                      'Today',
-                      '${stats['todayCompleted']}/${stats['todayTotal']}',
-                      LucideIcons.checkCircle,
-                      AppColors.primary,
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        context,
+                        'Today',
+                        '${stats['todayCompleted']}/${stats['todayTotal']}',
+                        LucideIcons.checkCircle,
+                        AppColors.primary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard(
-                      context,
-                      'Overdue',
-                      '${stats['overdue']}',
-                      LucideIcons.alertCircle,
-                      stats['overdue']! > 0 ? AppColors.error : AppColors.primary,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        context,
+                        'Overdue',
+                        '${stats['overdue']}',
+                        LucideIcons.alertCircle,
+                        stats['overdue']! > 0 ? AppColors.error : AppColors.primary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard(
-                      context,
-                      'Total Done',
-                      '${stats['completed']}',
-                      LucideIcons.trophy,
-                      AppColors.tertiary,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        context,
+                        'Total Done',
+                        '${stats['completed']}',
+                        LucideIcons.trophy,
+                        AppColors.tertiary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
 
               const SizedBox(height: 32),
 
               // AI Insight Card
-              GlassContainer(
-                color: AppColors.tertiary,
-                opacity: 0.1,
-                child: Row(
-                  children: [
-                    const Icon(LucideIcons.zap, color: AppColors.tertiary, size: 24),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        stats['todayPending']! > 0
-                            ? '${stats['todayPending']} tasks remaining today. ${stats['todayCompleted']! > 0 ? "Great progress! " : ""}Focus on high-priority items first.'
-                            : stats['todayTotal']! > 0
-                                ? '🎉 All tasks done for today! You\'re crushing it.'
-                                : 'No tasks planned for today. Add some tasks to stay productive!',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
+              Consumer(
+                builder: (context, ref, child) {
+                  final metrics = ref.watch(productivityMetricsProvider);
+                  final growth = double.tryParse(metrics['growth'] ?? '0') ?? 0;
+                  
+                  String insight = stats['todayPending']! > 0
+                      ? '${stats['todayPending']} tasks remaining. ${stats['todayCompleted']! > 0 ? "You're doing great! " : ""}Keep at it.'
+                      : stats['todayTotal']! > 0
+                          ? '🎉 Day complete! You hit your peak focus today.'
+                          : 'Plan your day to stay ahead.';
+                  
+                  if (growth > 0) insight = "🚀 You're ${growth}% more productive today! Keep this momentum.";
+
+                  return GlassContainer(
+                    color: AppColors.tertiary,
+                    opacity: 0.1,
+                    child: Row(
+                      children: [
+                        const Icon(LucideIcons.zap, color: AppColors.tertiary, size: 24),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            insight,
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.95, 0.95)),
 
               const SizedBox(height: 32),
@@ -163,7 +177,14 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 )
               else
-                ...todayTasks.map((task) => _buildTaskItem(context, ref, task)),
+                ...todayTasks.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final task = entry.value;
+                  return _buildTaskItem(context, ref, task)
+                    .animate()
+                    .fadeIn(delay: (400 + (index * 50)).ms, duration: 400.ms)
+                    .slideX(begin: 0.1, curve: Curves.easeOutCubic);
+                }),
 
               const SizedBox(height: 32),
 
@@ -209,18 +230,24 @@ class HomeScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribute top and bottom
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: GoogleFonts.manrope(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.onSurface,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(height: 12),
+              Text(
+                value,
+                style: GoogleFonts.manrope(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             label,
             style: GoogleFonts.inter(

@@ -21,6 +21,7 @@ class TasksScreen extends ConsumerStatefulWidget {
 
 class _TasksScreenState extends ConsumerState<TasksScreen> {
   String _sortBy = 'date'; // 'date', 'priority', 'category'
+  bool _isCompletedExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -29,11 +30,13 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     final todayTasks = ref.watch(todayTasksProvider);
     final tomorrowTasks = ref.watch(tomorrowTasksProvider);
     final upcomingTasks = ref.watch(upcomingTasksProvider);
+    final completedTasks = ref.watch(completedTasksProvider);
 
     final allEmpty = overdueTasks.isEmpty &&
         todayTasks.isEmpty &&
         tomorrowTasks.isEmpty &&
-        upcomingTasks.isEmpty;
+        upcomingTasks.isEmpty &&
+        completedTasks.isEmpty;
 
     return Scaffold(
       body: SafeArea(
@@ -87,7 +90,14 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                                     .animate()
                                     .fadeIn(delay: (e.key * 40).ms)
                                     .slideY(begin: 0.05)),
+                            const SizedBox(height: 16),
                           ],
+                          
+                          // Completed Section
+                          if (completedTasks.isNotEmpty) ...[
+                            _buildCompletedSection(context, completedTasks),
+                          ],
+
                           const SizedBox(height: 80),
                         ],
                       ),
@@ -428,6 +438,62 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     if (taskDate == today.add(const Duration(days: 1))) return 'Tomorrow';
     if (taskDate == today.subtract(const Duration(days: 1))) return 'Yesterday';
     return DateFormat('MMM d').format(date);
+  }
+
+  Widget _buildCompletedSection(BuildContext context, List<Task> tasks) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => setState(() => _isCompletedExpanded = !_isCompletedExpanded),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  _isCompletedExpanded ? LucideIcons.chevronDown : LucideIcons.chevronRight,
+                  color: AppColors.onSurfaceVariant,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Completed',
+                  style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${tasks.length}',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_isCompletedExpanded) ...[
+          const SizedBox(height: 8),
+          ...tasks.asMap().entries.map((e) =>
+              _buildTaskCard(context, e.value)
+                  .animate()
+                  .fadeIn(delay: (e.key * 30).ms)
+                  .slideY(begin: 0.02)),
+        ],
+      ],
+    );
   }
 
   Color _priorityColor(TaskPriority priority) {
