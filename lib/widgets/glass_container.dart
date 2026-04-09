@@ -11,15 +11,17 @@ class GlassContainer extends StatelessWidget {
   final double borderRadius;
   final EdgeInsetsGeometry padding;
   final Color? color;
+  final bool useBlur;
 
   const GlassContainer({
     super.key,
     required this.child,
-    this.blur = 12.0, // Reduced from 20.0 for better performance
+    this.blur = 10.0, // Optimized for performance/battery
     this.opacity = 0.6,
     this.borderRadius = 16.0,
     this.padding = const EdgeInsets.all(16.0),
     this.color,
+    this.useBlur = true,
   });
 
   @override
@@ -37,7 +39,7 @@ class GlassContainer extends StatelessWidget {
       child: child,
     );
 
-    if (!enableBlur || blur <= 0) {
+    if (!enableBlur || !useBlur || blur <= 0) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: content,

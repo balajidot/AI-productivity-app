@@ -150,6 +150,28 @@ Return ONLY a valid JSON object:
     return null;
   }
 
+  String _extractJson(String text) {
+    // 1. Try to find content between ```json and ```
+    final jsonBlockMatch = RegExp(r'```json\s*([\s\S]*?)\s*```').firstMatch(text);
+    if (jsonBlockMatch != null) {
+      return jsonBlockMatch.group(1)!.trim();
+    }
+
+    // 2. Try to find content between any ``` blocks
+    final codeBlockMatch = RegExp(r'```\s*([\s\S]*?)\s*```').firstMatch(text);
+    if (codeBlockMatch != null) {
+      return codeBlockMatch.group(1)!.trim();
+    }
+
+    // 3. Try to find the first '{' and last '}'
+    final braceMatch = RegExp(r'(\{[\s\S]*\})').firstMatch(text);
+    if (braceMatch != null) {
+      return braceMatch.group(1)!.trim();
+    }
+
+    return text.trim();
+  }
+
   Future<Task?> _parseTaskWithNvidia(String text) async {
     print('Calling NVIDIA NIM for NLP parsing...');
     try {
@@ -183,21 +205,47 @@ Return ONLY a valid JSON object:
 
   Task? _jsonToTask(String responseText, String originalText) {
     try {
-      String cleanJson = responseText.trim();
-      cleanJson = cleanJson.replaceAll(RegExp(r'```json?\s*'), '');
-      cleanJson = cleanJson.replaceAll(RegExp(r'```\s*'), '');
-      cleanJson = cleanJson.trim();
-
+      final cleanJson = _extractJson(responseText);
       final Map<String, dynamic> parsed = jsonDecode(cleanJson);
+      
+      // Mandatory field check
+      if (parsed['title'] == null || parsed['title'].toString().isEmpty) {
+        return null;
+      }
+
+      final title = parsed['title'].toString();
+      final dateStr = parsed['date']?.toString();
+      
+      // Robust Date Parsing
+      DateTime date = DateTime.now();
+      if (dateStr != null) {
+        date = DateTime.tryParse(dateStr) ?? date;
+        // Check for common AI text in date
+        if (dateStr.toLowerCase().contains('tomorrow')) {
+          date = DateTime.now().add(const Duration(days: 1));
+        }
+      }
+      
+      final time = parsed['time']?.toString();
+      
+      int priorityVal = 1;
+      if (parsed['priority'] is int) {
+        priorityVal = parsed['priority'].clamp(0, 2);
+      } else if (parsed['priority'] != null) {
+        priorityVal = int.tryParse(parsed['priority'].toString())?.clamp(0, 2) ?? 1;
+      }
+
       return Task(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        title: parsed['title'] ?? originalText,
-        date: parsed['date'] != null ? DateTime.parse(parsed['date']) : DateTime.now(),
-        time: parsed['time'],
-        priority: TaskPriority.values[parsed['priority'] ?? 1],
-        category: parsed['category'] ?? 'Inbox',
+        title: title,
+        date: date,
+        time: time,
+        priority: TaskPriority.values[priorityVal],
+        category: parsed['category']?.toString() ?? 'Inbox',
+        recurrence: parsed['recurrence']?.toString(),
       );
     } catch (e) {
+      print('JSON Parsing failed: $e. Response was: $responseText');
       return null;
     }
   }

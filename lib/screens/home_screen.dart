@@ -302,6 +302,7 @@ class HomeScreen extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: GlassContainer(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        useBlur: false, // Performance optimize for list items
         child: Row(
           children: [
             // Checkbox

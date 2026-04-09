@@ -178,11 +178,22 @@ class TaskNotifier extends Notifier<List<Task>> {
     state = await _storage.getTasks();
   }
 
-  Future<void> addTask(Task task) async {
-    await _storage.insertTask(task);
-    await loadTasks();
-    
-    if (task.time != null) {
+  int _getNotificationId(String taskId) {
+    // Convert taskId string to a stable 32-bit integer for notifications
+    try {
+      // If it's pure numeric timestamp (most of our IDs)
+      if (taskId.length >= 9) {
+        return int.parse(taskId.substring(taskId.length - 9));
+      }
+      return int.parse(taskId);
+    } catch (_) {
+      // Fallback to absolute hash if parsing fails
+      return taskId.hashCode.abs() % 1000000;
+    }
+  }
+
+  Future<void> _scheduleReminderForTask(Task task) async {
+    if (task.time != null && task.status != TaskStatus.completed) {
       final timeParts = task.time!.split(':');
       final hour = int.parse(timeParts[0]);
       final minute = int.parse(timeParts[1]);
@@ -194,57 +205,81 @@ class TaskNotifier extends Notifier<List<Task>> {
         minute,
       );
       
-      await NotificationService().scheduleTaskReminder(
-        id: task.id.hashCode,
-        title: task.title,
-        scheduledDate: scheduledDate,
-      );
+      if (scheduledDate.isAfter(DateTime.now())) {
+        await NotificationService().scheduleTaskReminder(
+          id: _getNotificationId(task.id),
+          title: task.title,
+          scheduledDate: scheduledDate,
+        );
+      }
     }
   }
 
+  Future<void> _cancelReminderForTask(String taskId) async {
+    await NotificationService().cancelReminder(_getNotificationId(taskId));
+  }
+
+  Future<void> addTask(Task task) async {
+    // Optimistic Update: Add to UI immediately
+    state = [...state, task];
+    
+    // Save to DB in background
+    _storage.insertTask(task).ignore();
+    
+    // Schedule reminder
+    _scheduleReminderForTask(task).ignore();
+  }
+
   Future<void> updateTask(Task task) async {
-    await _storage.updateTask(task);
-    await loadTasks();
+    // Optimistic Update: Replace in UI
+    state = [
+      for (final t in state)
+        if (t.id == task.id) task else t
+    ];
+    
+    // Commmit to DB and handle notifications in background
+    _cancelReminderForTask(task.id).then((_) {
+      _storage.updateTask(task).ignore();
+      _scheduleReminderForTask(task).ignore();
+    });
   }
 
   Future<bool> toggleTask(String id) async {
-    final task = state.firstWhere((t) => t.id == id);
+    final taskIndex = state.indexWhere((t) => t.id == id);
+    if (taskIndex == -1) return false;
+    
+    final task = state[taskIndex];
     final isCompleting = task.status != TaskStatus.completed;
     
     final updatedTask = task.copyWith(
       status: isCompleting ? TaskStatus.completed : TaskStatus.todo,
     );
-    await _storage.insertTask(updatedTask);
-    await loadTasks();
+    
+    // Optimistic Update
+    state = [
+      for (final t in state)
+        if (t.id == id) updatedTask else t
+    ];
+    
+    // Background sync
+    _storage.updateTask(updatedTask).ignore();
     
     if (isCompleting) {
-      await NotificationService().cancelReminder(task.id.hashCode);
-    } else if (updatedTask.time != null) {
-      // Reschedule if un-completing and it has a time
-      final timeParts = updatedTask.time!.split(':');
-      final scheduledDate = DateTime(
-        updatedTask.date.year,
-        updatedTask.date.month,
-        updatedTask.date.day,
-        int.parse(timeParts[0]),
-        int.parse(timeParts[1]),
-      );
-      if (scheduledDate.isAfter(DateTime.now())) {
-        await NotificationService().scheduleTaskReminder(
-          id: updatedTask.id.hashCode,
-          title: updatedTask.title,
-          scheduledDate: scheduledDate,
-        );
-      }
+      _cancelReminderForTask(id).ignore();
+    } else {
+      _scheduleReminderForTask(updatedTask).ignore();
     }
     
-    return isCompleting; // true if task was just completed
+    return isCompleting;
   }
 
   Future<void> deleteTask(String id) async {
-    await _storage.deleteTask(id);
-    await loadTasks();
-    await NotificationService().cancelReminder(id.hashCode);
+    // Optimistic Update
+    state = state.where((t) => t.id != id).toList();
+    
+    // Background cleanup
+    _cancelReminderForTask(id).ignore();
+    _storage.deleteTask(id).ignore();
   }
 }
 

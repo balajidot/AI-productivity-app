@@ -308,6 +308,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           onTap: () => _showEditTaskSheet(context, task),
           child: GlassContainer(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            useBlur: false, // Performance: Individual cards don't need blur
             child: Row(
               children: [
                 // Animated checkbox
