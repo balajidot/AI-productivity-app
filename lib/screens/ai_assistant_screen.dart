@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,6 +9,7 @@ import '../models/message_model.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/ai_action_card.dart';
+import '../config/constants.dart';
 
 class AIAssistantScreen extends ConsumerStatefulWidget {
   const AIAssistantScreen({super.key});
@@ -35,11 +37,13 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
   void _sendMessage() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
+    
+    // Check if mounted before proceeding
+    if (!mounted) return;
+    
     ref.read(chatProvider.notifier).sendMessage(text);
     _controller.clear();
     _scrollToBottom();
-    // Scroll again after response arrives
-    Future.delayed(const Duration(milliseconds: 1500), _scrollToBottom);
   }
 
   @override
@@ -55,7 +59,12 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
         if (previous == null || previous.isEmpty || previous.last.text != next.last.text) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_scrollController.hasClients) {
-               _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+              // Smoothly animate instead of jump
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: 200.ms,
+                curve: Curves.easeOut,
+              );
             }
           });
         }
@@ -304,57 +313,204 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
   Widget _buildInputArea(BuildContext context, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-      child: GlassContainer(
-        borderRadius: 28,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        child: Row(
-          children: [
-            const SizedBox(width: 10),
-            Icon(LucideIcons.paperclip, color: theme.colorScheme.onSurfaceVariant, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                style: TextStyle(color: theme.colorScheme.onSurface),
-                decoration: InputDecoration(
-                  hintText: 'Ask anything...',
-                  hintStyle: GoogleFonts.inter(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                    fontSize: 14,
-                  ),
-                  border: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  filled: false,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                ),
-                onSubmitted: (_) => _sendMessage(),
-                textInputAction: TextInputAction.send,
-              ),
-            ),
-            GestureDetector(
-              onTap: _sendMessage,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
-                  ),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+      child: Column(
+        children: [
+          _buildModelSelector(context, theme),
+          const SizedBox(height: 12),
+          GlassContainer(
+            borderRadius: 28,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            child: Row(
+              children: [
+                const SizedBox(width: 10),
+                Icon(LucideIcons.paperclip, color: theme.colorScheme.onSurfaceVariant, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    style: TextStyle(color: theme.colorScheme.onSurface),
+                    decoration: InputDecoration(
+                      hintText: 'Ask anything...',
+                      hintStyle: GoogleFonts.inter(
+                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        fontSize: 14,
+                      ),
+                      border: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     ),
-                  ],
+                    onSubmitted: (_) => _sendMessage(),
+                    textInputAction: TextInputAction.send,
+                  ),
                 ),
-                child: Icon(LucideIcons.send, color: theme.colorScheme.onPrimary, size: 18),
-              ),
+                GestureDetector(
+                  onTap: _sendMessage,
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(LucideIcons.send, color: theme.colorScheme.onPrimary, size: 18),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildModelSelector(BuildContext context, ThemeData theme) {
+    final settings = ref.watch(appSettingsProvider);
+    final currentId = settings.aiModelId;
+
+    return Row(
+      children: [
+        const SizedBox(width: 12),
+        PopupMenuButton<String>(
+          offset: const Offset(0, -220),
+          color: theme.colorScheme.surfaceContainerHigh,
+          elevation: 8,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          onSelected: (id) {
+            HapticFeedback.selectionClick();
+            ref.read(appSettingsProvider.notifier).updateAIModel(id);
+          },
+          itemBuilder: (context) => [
+            _buildMenuItem(
+              id: AppConstants.autoModelId,
+              name: 'Auto Intelligence',
+              tag: 'Smart',
+              icon: LucideIcons.brainCircuit,
+              theme: theme,
+            ),
+            _buildMenuItem(
+              id: AppConstants.llama5_405b,
+              name: 'Llama 5 (405B)',
+              tag: 'Flagship',
+              icon: LucideIcons.sparkles,
+              theme: theme,
+            ),
+            _buildMenuItem(
+              id: AppConstants.gemini31Pro,
+              name: 'Gemini 3.1 Pro',
+              tag: 'Logic',
+              icon: LucideIcons.brain,
+              theme: theme,
+            ),
+            _buildMenuItem(
+              id: AppConstants.deepseekV3,
+              name: 'DeepSeek V3',
+              tag: 'Code',
+              icon: LucideIcons.code,
+              theme: theme,
+            ),
+            _buildMenuItem(
+              id: AppConstants.groqLlama70b,
+              name: 'Groq Llama 3.3',
+              tag: 'Fast',
+              icon: LucideIcons.zap,
+              theme: theme,
+            ),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.1), width: 1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  currentId == AppConstants.autoModelId ? LucideIcons.brainCircuit : LucideIcons.cpu, 
+                  size: 14, 
+                  color: theme.colorScheme.primary
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _getFriendlyName(currentId),
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(LucideIcons.chevronUp, size: 12, color: theme.colorScheme.onSurfaceVariant),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  PopupMenuItem<String> _buildMenuItem({
+    required String id,
+    required String name,
+    required String tag,
+    required IconData icon,
+    required ThemeData theme,
+  }) {
+    return PopupMenuItem<String>(
+      value: id,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 12),
+              Text(
+                name,
+                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+          const SizedBox(width: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              tag,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getFriendlyName(String id) {
+    if (id == AppConstants.autoModelId) return 'Auto-Intelligence';
+    if (id.contains('llama-5')) return 'Llama 5 (405B)';
+    if (id.contains('gemini-3.1-pro')) return 'Gemini 3.1 Pro';
+    if (id.contains('deepseek')) return 'DeepSeek V3';
+    if (id.contains('70b')) return 'Groq 70B';
+    if (id.contains('pro')) return 'Gemini Pro';
+    if (id.contains('flash')) return 'Gemini Flash';
+    return 'Manual Select';
   }
 
   Widget _buildWelcomeMessage(BuildContext context, ThemeData theme) {

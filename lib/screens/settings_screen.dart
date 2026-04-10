@@ -57,46 +57,6 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               _buildSettingItem(
                 context,
-                icon: LucideIcons.zap,
-                title: 'Auto-Intelligence Mode',
-                subtitle: settings.isAutoAI ? 'Managing speed & quality automatically' : 'Manual engine selection',
-                trailing: Switch(
-                  value: settings.isAutoAI,
-                  onChanged: (v) {
-                    HapticFeedback.mediumImpact();
-                    settingsNotifier.updateAutoAI(v);
-                  },
-                  activeTrackColor: AppColors.tertiary.withValues(alpha: 0.5),
-                  activeThumbColor: AppColors.tertiary,
-                ),
-              ),
-              _buildSettingItem(
-                context,
-                icon: LucideIcons.cpu,
-                title: 'Intelligence Engine',
-                subtitle: _getModelFriendlyName(settings.aiModelId),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  _showSelectionDialog(
-                    context,
-                    'Select Intelligence Engine',
-                    [
-                      'Gemini 3.1 Pro (Deep Think)',
-                      'Gemini 3.1 Flash (High Speed)',
-                      'Llama 3.3 70B (Balanced Power)',
-                      'Mistral Large 3 (Creative)',
-                      'Llama 3.1 8B (Hyper Speed)',
-                    ],
-                    _getModelFriendlyName(settings.aiModelId),
-                    (v) {
-                      HapticFeedback.mediumImpact();
-                      settingsNotifier.updateAIModel(_getModelIdFromName(v));
-                    },
-                  );
-                },
-              ),
-              _buildSettingItem(
-                context,
                 icon: LucideIcons.brain,
                 title: 'Smart Task Analysis',
                 subtitle: 'AI-powered task decomposition',
@@ -418,27 +378,6 @@ class SettingsScreen extends ConsumerWidget {
     ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.05);
   }
 
-  String _getModelFriendlyName(String id) {
-    switch (id) {
-      case 'gemini-3.1-pro-preview': return 'Gemini 3.1 Pro (Deep Think)';
-      case 'gemini-3.1-flash-lite-preview': return 'Gemini 3.1 Flash (High Speed)';
-      case 'llama-3.3-70b-versatile': return 'Llama 3.3 70B (Balanced Power)';
-      case 'openai/gpt-oss-120b': return 'OpenAI GPT-OSS 120B (Premium Reasoning)';
-      case 'mistralai/mistral-large-2411': return 'Mistral Large 3 (Creative)';
-      case 'llama-3.1-8b-instant': return 'Llama 3.1 8B (Hyper Speed)';
-      default: return 'Gemini 3.1 Flash (High Speed)';
-    }
-  }
-
-  String _getModelIdFromName(String name) {
-    if (name.contains('Gemini 3.1 Pro')) return 'gemini-3.1-pro-preview';
-    if (name.contains('Gemini 3.1 Flash')) return 'gemini-3.1-flash-lite-preview';
-    if (name.contains('Llama 3.3 70B')) return 'llama-3.3-70b-versatile';
-    if (name.contains('GPT-OSS')) return 'openai/gpt-oss-120b';
-    if (name.contains('Mistral Large 3')) return 'mistralai/mistral-large-2411';
-    if (name.contains('Llama 3.1 8B')) return 'llama-3.1-8b-instant';
-    return 'gemini-3.1-flash-lite-preview';
-  }
 
   void _showSignOutDialog(BuildContext context, WidgetRef ref) {
     showDialog(

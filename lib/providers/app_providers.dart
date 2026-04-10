@@ -101,11 +101,6 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
     state = state.copyWith(aiModelId: value);
     _saveSettings();
   }
-
-  void updateAutoAI(bool value) {
-    state = state.copyWith(isAutoAI: value);
-    _saveSettings();
-  }
 }
 
 final performanceModeProvider = Provider<bool>((ref) {
@@ -337,8 +332,8 @@ class TaskNotifier extends Notifier<List<Task>> {
       }
       return int.parse(taskId);
     } catch (_) {
-      // Fallback to absolute hash if parsing fails
-      return taskId.hashCode.abs() % 1000000;
+      // Fallback to absolute hash if parsing fails, ensuring it fits in 32-bit int
+      return taskId.hashCode.abs() % 2147483647;
     }
   }
 
@@ -601,7 +596,6 @@ ${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: $
         tasks: tasks, 
         extraContext: extraContext, 
         modelId: settings.aiModelId,
-        isAutoAI: settings.isAutoAI,
       );
       
       bool hasData = false;
@@ -670,8 +664,10 @@ ${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: $
       switch (action.type) {
         case AIActionType.createTask:
           final p = actualParams;
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final randomSuffix = (1000 + (DateTime.now().microsecond % 9000));
           final newTask = Task(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            id: 'task_${timestamp}_$randomSuffix',
             title: p['title']?.toString() ?? 'New Task',
             date: DateTime.tryParse(p['date']?.toString() ?? '') ?? DateTime.now(),
             time: p['time']?.toString(),

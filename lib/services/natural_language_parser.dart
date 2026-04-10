@@ -31,33 +31,54 @@ class NaturalLanguageParser {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // --- Date Detection ---
-    // "today"
-    if (_containsWord(text, 'today')) {
+    // "today" / "இன்று"
+    if (_containsWord(text, 'today') || _containsWord(text, 'இன்று') || _containsWord(text, 'innaiku')) {
       parsedDate = today;
       text = _removeWord(text, 'today');
+      text = _removeWord(text, 'இன்று');
+      text = _removeWord(text, 'innaiku');
     }
-    // "tomorrow" / "tmrw"
-    else if (_containsWord(text, 'tomorrow') || _containsWord(text, 'tmrw')) {
+    // "tomorrow" / "நாளை"
+    else if (_containsWord(text, 'tomorrow') || _containsWord(text, 'tmrw') || _containsWord(text, 'நாளை') || _containsWord(text, 'nalaiku')) {
       parsedDate = today.add(const Duration(days: 1));
       text = _removeWord(text, 'tomorrow');
       text = _removeWord(text, 'tmrw');
+      text = _removeWord(text, 'நாளை');
+      text = _removeWord(text, 'nalaiku');
     }
-    // "day after tomorrow"
-    else if (text.toLowerCase().contains('day after tomorrow')) {
-      parsedDate = today.add(const Duration(days: 2));
-      text = text.replaceAll(RegExp(r'day\s+after\s+tomorrow', caseSensitive: false), '');
-    }
-    // "next monday", "next tuesday", etc.
+    // "in X days" / "இன்னும் X நாட்களில்"
     else {
-      final nextDayMatch = RegExp(
-        r'next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)',
-        caseSensitive: false,
-      ).firstMatch(text);
-      if (nextDayMatch != null) {
-        final dayName = nextDayMatch.group(1)!.toLowerCase();
-        parsedDate = _getNextWeekday(dayName, today);
-        text = text.replaceAll(nextDayMatch.group(0)!, '');
+      final inDaysMatch = RegExp(r'(?:in\s+)?(\d+)\s+(?:days|day|நாட்கள்|நாட்களில்)', caseSensitive: false).firstMatch(text);
+      if (inDaysMatch != null) {
+        final days = int.parse(inDaysMatch.group(1)!);
+        parsedDate = today.add(Duration(days: days));
+        text = text.replaceAll(inDaysMatch.group(0)!, '');
+      }
+      
+      // "next week" / "அடுத்த வாரம்"
+      if (parsedDate == null && (_containsWord(text, 'next week') || _containsWord(text, 'அடுத்த வாரம்'))) {
+        parsedDate = today.add(const Duration(days: 7));
+        text = _removeWord(text, 'next week');
+        text = _removeWord(text, 'அடுத்த வாரம்');
+      }
+
+      // "day after tomorrow"
+      if (parsedDate == null && text.toLowerCase().contains('day after tomorrow')) {
+        parsedDate = today.add(const Duration(days: 2));
+        text = text.replaceAll(RegExp(r'day\s+after\s+tomorrow', caseSensitive: false), '');
+      }
+
+      // "next monday", "next tuesday", etc.
+      if (parsedDate == null) {
+        final nextDayMatch = RegExp(
+          r'next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)',
+          caseSensitive: false,
+        ).firstMatch(text);
+        if (nextDayMatch != null) {
+          final dayName = nextDayMatch.group(1)!.toLowerCase();
+          parsedDate = _getNextWeekday(dayName, today);
+          text = text.replaceAll(nextDayMatch.group(0)!, '');
+        }
       }
     }
 
@@ -125,20 +146,16 @@ class NaturalLanguageParser {
     }
 
     // --- Priority Detection ---
-    if (text.contains('!!!') || _containsWord(text, 'urgent')) {
+    if (text.contains('!!!') || _containsWord(text, 'urgent') || _containsWord(text, 'முக்கியம்')) {
       parsedPriority = TaskPriority.high;
       text = text.replaceAll('!!!', '');
       text = _removeWord(text, 'urgent');
-    } else if (text.contains('!!') || _containsWord(text, 'important')) {
+      text = _removeWord(text, 'முக்கியம்');
+    } else if (text.contains('!!') || _containsWord(text, 'important') || _containsWord(text, 'vivaai')) {
       parsedPriority = TaskPriority.high;
       text = text.replaceAll('!!', '');
       text = _removeWord(text, 'important');
-    } else if (_containsWord(text, 'high priority') || _containsWord(text, 'high')) {
-      parsedPriority = TaskPriority.high;
-      text = text.replaceAll(RegExp(r'high\s+priority', caseSensitive: false), '');
-    } else if (_containsWord(text, 'low priority') || _containsWord(text, 'low')) {
-      parsedPriority = TaskPriority.low;
-      text = text.replaceAll(RegExp(r'low\s+priority', caseSensitive: false), '');
+      text = _removeWord(text, 'vivaai');
     }
 
     // --- Category Detection ---

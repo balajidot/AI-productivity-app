@@ -200,15 +200,13 @@ class AppSettings {
   final String aiTone;
   final String themeMode; // 'Light', 'Dark', 'System'
   final String aiModelId; // ID of the preferred AI model
-  final bool isAutoAI;
 
   const AppSettings({
     this.smartAnalysis = true,
     this.notificationsEnabled = true,
     this.aiTone = 'Professional',
     this.themeMode = 'System',
-    this.aiModelId = 'gemini-3.1-flash-lite-preview',
-    this.isAutoAI = true,
+    this.aiModelId = 'auto-intelligence',
   });
 
   AppSettings copyWith({
@@ -217,7 +215,6 @@ class AppSettings {
     String? aiTone,
     String? themeMode,
     String? aiModelId,
-    bool? isAutoAI,
   }) {
     return AppSettings(
       smartAnalysis: smartAnalysis ?? this.smartAnalysis,
@@ -225,7 +222,6 @@ class AppSettings {
       aiTone: aiTone ?? this.aiTone,
       themeMode: themeMode ?? this.themeMode,
       aiModelId: aiModelId ?? this.aiModelId,
-      isAutoAI: isAutoAI ?? this.isAutoAI,
     );
   }
 
@@ -236,7 +232,6 @@ class AppSettings {
       'aiTone': aiTone,
       'themeMode': themeMode,
       'aiModelId': aiModelId,
-      'isAutoAI': isAutoAI,
     };
   }
 
@@ -246,8 +241,7 @@ class AppSettings {
       notificationsEnabled: map['notificationsEnabled'] ?? true,
       aiTone: map['aiTone'] ?? 'Professional',
       themeMode: map['themeMode'] ?? 'System',
-      aiModelId: map['aiModelId'] ?? 'gemini-3.1-flash-lite-preview',
-      isAutoAI: map['isAutoAI'] ?? true,
+      aiModelId: map['aiModelId'] ?? 'gemini-1.5-pro-latest',
     );
   }
 }

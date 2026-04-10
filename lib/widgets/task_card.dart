@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -24,22 +23,21 @@ class TaskCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final isCompleted = task.status == TaskStatus.completed;
 
     return Dismissible(
       key: Key(task.id),
       direction: DismissDirection.horizontal,
-      background: _buildDismissBackground(
+      background: const _DismissBackground(
         alignment: Alignment.centerLeft,
-        color: Colors.green.withValues(alpha: 0.15),
+        color: Color(0x264CAF50), // 0.15 alpha Green
         icon: LucideIcons.checkCircle,
         label: 'Complete',
         textColor: Colors.greenAccent,
       ),
-      secondaryBackground: _buildDismissBackground(
+      secondaryBackground: const _DismissBackground(
         alignment: Alignment.centerRight,
-        color: AppColors.errorDim.withValues(alpha: 0.15),
+        color: Color(0x26EF5350), // 0.15 alpha Error
         icon: LucideIcons.trash2,
         label: 'Delete',
         textColor: AppColors.error,
@@ -71,51 +69,14 @@ class TaskCard extends ConsumerWidget {
               children: [
                 _buildCheckbox(ref, context, isCompleted),
                 const SizedBox(width: 14),
-                _buildPriorityBar(),
+                _PriorityBar(color: task.priorityColor),
                 const SizedBox(width: 14),
-                _buildTaskInfo(theme, isCompleted),
-                _buildTimeInfo(theme),
+                _TaskInfoSection(task: task, isCompleted: isCompleted, isOverdue: isOverdue),
+                _TimeInfoSection(task: task),
               ],
             ),
           ),
-        ).animate(onPlay: (c) => c.stop()).scale(
-              begin: const Offset(1, 1),
-              end: const Offset(0.97, 0.97),
-              duration: 100.ms,
-              curve: Curves.easeInOut,
-            ),
-      ),
-    );
-  }
-
-  Widget _buildDismissBackground({
-    required Alignment alignment,
-    required Color color,
-    required IconData icon,
-    required String label,
-    required Color textColor,
-  }) {
-    return Container(
-      alignment: alignment,
-      padding: EdgeInsets.symmetric(horizontal: 20),
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (alignment == Alignment.centerLeft) ...[
-            Icon(icon, color: textColor),
-            const SizedBox(width: 8),
-          ],
-          Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.w600)),
-          if (alignment == Alignment.centerRight) ...[
-            const SizedBox(width: 8),
-            Icon(icon, color: textColor),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -150,19 +111,71 @@ class TaskCard extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildPriorityBar() {
+class _DismissBackground extends StatelessWidget {
+  final Alignment alignment;
+  final Color color;
+  final IconData icon;
+  final String label;
+  final Color textColor;
+
+  const _DismissBackground({required this.alignment, required this.color, required this.icon, required this.label, required this.textColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (alignment == Alignment.centerLeft) ...[
+            Icon(icon, color: textColor),
+            const SizedBox(width: 8),
+          ],
+          Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.w600)),
+          if (alignment == Alignment.centerRight) ...[
+            const SizedBox(width: 8),
+            Icon(icon, color: textColor),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PriorityBar extends StatelessWidget {
+  final Color color;
+  const _PriorityBar({required this.color});
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: 3,
       height: 32,
       decoration: BoxDecoration(
-        color: task.priorityColor,
+        color: color,
         borderRadius: BorderRadius.circular(2),
       ),
     );
   }
+}
 
-  Widget _buildTaskInfo(ThemeData theme, bool isCompleted) {
+class _TaskInfoSection extends StatelessWidget {
+  final Task task;
+  final bool isCompleted;
+  final bool isOverdue;
+
+  const _TaskInfoSection({required this.task, required this.isCompleted, required this.isOverdue});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +202,7 @@ class TaskCard extends ConsumerWidget {
               ),
               if (task.recurrence != null) ...[
                 const SizedBox(width: 6),
-                Icon(LucideIcons.repeat, size: 11, color: AppColors.secondary),
+                const Icon(LucideIcons.repeat, size: 11, color: AppColors.secondary),
                 const SizedBox(width: 3),
                 Text(
                   task.recurrence!,
@@ -202,8 +215,15 @@ class TaskCard extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildTimeInfo(ThemeData theme) {
+class _TimeInfoSection extends StatelessWidget {
+  final Task task;
+  const _TimeInfoSection({required this.task});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [

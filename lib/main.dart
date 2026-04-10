@@ -11,25 +11,28 @@ import 'providers/app_providers.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase (Will require google-services.json to build)
+  bool firebaseInitialized = false;
   try {
     await Firebase.initializeApp();
+    firebaseInitialized = true;
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
+    firebaseInitialized = false;
   }
   
   // Initialize services
   await NotificationService().init();
   
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    ProviderScope(
+      child: MyApp(isFirebaseAvailable: firebaseInitialized),
     ),
   );
 }
 
 class MyApp extends ConsumerWidget {
-  const MyApp({super.key});
+  final bool isFirebaseAvailable;
+  const MyApp({super.key, required this.isFirebaseAvailable});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,6 +49,42 @@ class MyApp extends ConsumerWidget {
         break;
       default:
         themeMode = ThemeMode.system;
+    }
+
+    if (!isFirebaseAvailable) {
+      return MaterialApp(
+        title: 'Obsidian AI',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 64),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Firebase Connection Error',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Could not initialize connection to storage. Please check your internet or configuration.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => main(),
+                    child: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     return MaterialApp(
@@ -66,7 +105,7 @@ class MyApp extends ConsumerWidget {
             child: CircularProgressIndicator(),
           ),
         ),
-        error: (e, st) => LoginScreen(), // Fallback
+        error: (e, st) => const LoginScreen(), // Fallback
       ),
     );
   }
