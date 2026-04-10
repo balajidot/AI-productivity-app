@@ -164,17 +164,19 @@ class Habit {
       'name': name,
       'icon': icon,
       'streak': streak,
-      'completedDates': completedDates.map((d) => d.toIso8601String()).toList().join(','),
+      'completedDates': completedDates.map((d) => d.toIso8601String()).toList(),
     };
   }
 
   factory Habit.fromMap(Map<String, dynamic> map) {
     List<DateTime> dates = [];
     final rawDates = map['completedDates'];
-    if (rawDates is String && rawDates.isNotEmpty) {
-      dates = rawDates.split(',').map((s) => DateTime.tryParse(s)).whereType<DateTime>().toList();
-    } else if (rawDates is List) {
+    
+    if (rawDates is List) {
       dates = rawDates.map((s) => DateTime.tryParse(s.toString())).whereType<DateTime>().toList();
+    } else if (rawDates is String && rawDates.isNotEmpty) {
+      // Backward compatibility for the old comma-separated format
+      dates = rawDates.split(',').map((s) => DateTime.tryParse(s)).whereType<DateTime>().toList();
     }
 
     return Habit(

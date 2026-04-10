@@ -410,7 +410,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => const QuickAddTaskSheet(),
+      builder: (context) => QuickAddTaskSheet(initialDate: _selectedDay),
     );
   }
 }

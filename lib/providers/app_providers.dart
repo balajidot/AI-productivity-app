@@ -11,6 +11,7 @@ import '../services/notification_service.dart';
 import '../config/secrets.dart';
 import 'auth_provider.dart';
 import '../services/firestore_service.dart';
+import '../services/performance_service.dart';
 
 // Services
 final firestoreServiceProvider = Provider<FirestoreService?>((ref) {
@@ -103,16 +104,28 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
   }
 }
 
-final performanceModeProvider = Provider<bool>((ref) {
-  // WhatsApp-style automatic optimization: 
-  // Detect if the device is lower-end (4 or fewer cores)
-  // Devices with <= 4 cores will use a simplified "Optimized UI" for speed and battery.
-  try {
-    return Platform.numberOfProcessors <= 4;
-  } catch (_) {
-    return false; // Safely default to high performance if detection fails
+final performanceModeProvider = NotifierProvider<PerformanceModeNotifier, bool>(PerformanceModeNotifier.new);
+
+class PerformanceModeNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    _init();
+    // Default based on simple CPU core count check (sync)
+    try {
+      if (!kIsWeb) {
+        return Platform.numberOfProcessors <= 4;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
-});
+
+  Future<void> _init() async {
+    final deviceClass = await PerformanceService.getDetailedDeviceClass();
+    state = deviceClass == DevicePerformanceClass.low;
+  }
+}
 
 // Real-time Cloud Streams
 final tasksStreamProvider = StreamProvider<List<Task>>((ref) {
@@ -365,34 +378,48 @@ class TaskNotifier extends Notifier<List<Task>> {
   }
 
   Future<void> addTask(Task task) async {
+    final previousState = state;
     // Optimistic Update: Add to UI immediately
     state = [...state, task];
     
-    // Save to Cloud
-    _firestore?.saveTask(task).ignore();
-    
-    // Schedule reminder
-    _scheduleReminderForTask(task).ignore();
+    try {
+      // Save to Cloud
+      await _firestore?.saveTask(task);
+      // Schedule reminder
+      _scheduleReminderForTask(task).ignore();
+    } catch (e) {
+      // ROLLBACK on failure
+      state = previousState;
+      debugPrint('UI Rollback: addTask failed: $e');
+    }
   }
 
   Future<void> updateTask(Task task) async {
+    final previousState = state;
     // Optimistic Update: Replace in UI
     state = [
       for (final t in state)
         if (t.id == task.id) task else t
     ];
     
-    // Commmit to Cloud and handle notifications in background
-    _cancelReminderForTask(task.id).then((_) {
-      _firestore?.saveTask(task).ignore();
+    try {
+      // Commmit to Cloud and handle notifications in background
+      await _cancelReminderForTask(task.id);
+      await _firestore?.saveTask(task);
       _scheduleReminderForTask(task).ignore();
-    });
+    } catch (e) {
+      // ROLLBACK on failure
+      state = previousState;
+      debugPrint('UI Rollback: updateTask failed: $e');
+      rethrow; // Surface to UI
+    }
   }
 
   Future<bool> toggleTask(String id) async {
     final taskIndex = state.indexWhere((t) => t.id == id);
     if (taskIndex == -1) return false;
     
+    final previousState = state;
     final task = state[taskIndex];
     final isCompleting = task.status != TaskStatus.completed;
     
@@ -406,29 +433,40 @@ class TaskNotifier extends Notifier<List<Task>> {
         if (t.id == id) updatedTask else t
     ];
     
-    // Cloud sync
-    _firestore?.saveTask(updatedTask).ignore();
-    
-    if (isCompleting) {
-      _cancelReminderForTask(id).ignore();
-    } else {
-      _scheduleReminderForTask(updatedTask).ignore();
+    try {
+      // Cloud sync
+      await _firestore?.saveTask(updatedTask);
+      
+      if (isCompleting) {
+        _cancelReminderForTask(id).ignore();
+      } else {
+        _scheduleReminderForTask(updatedTask).ignore();
+      }
+      return isCompleting;
+    } catch (e) {
+      // ROLLBACK on failure
+      state = previousState;
+      debugPrint('UI Rollback: toggleTask failed: $e');
+      return !isCompleting; // Return original status
     }
-    
-    return isCompleting;
   }
 
   Future<void> deleteTask(String id) async {
+    final previousState = state;
     // Prevent flicker with local tracking
     _deletingIds.add(id);
     
     // Optimistic Update
     state = state.where((t) => t.id != id).toList();
     
-    // Background cleanup
-    _cancelReminderForTask(id).ignore();
     try {
+      // Background cleanup
+      await _cancelReminderForTask(id);
       await _firestore?.deleteTask(id);
+    } catch (e) {
+      // ROLLBACK on failure
+      state = previousState;
+      debugPrint('UI Rollback: deleteTask failed: $e');
     } finally {
       _deletingIds.remove(id);
     }
@@ -470,7 +508,13 @@ class HabitNotifier extends Notifier<List<Habit>> {
 
   Future<void> addHabit(Habit habit) async {
     state = [...state, habit];
-    _firestore?.saveHabit(habit).ignore();
+    try {
+      await _firestore?.saveHabit(habit);
+    } catch (e) {
+      debugPrint('addHabit failed: $e');
+      // Rollback
+      state = state.where((h) => h.id != habit.id).toList();
+    }
   }
 
   Future<void> toggleHabitDay(String id, DateTime date) async {
@@ -495,12 +539,20 @@ class HabitNotifier extends Notifier<List<Habit>> {
     );
 
     state = [for (final h in state) if (h.id == id) updatedHabit else h];
-    _firestore?.saveHabit(updatedHabit).ignore();
+    try {
+      await _firestore?.saveHabit(updatedHabit);
+    } catch (e) {
+      debugPrint('toggleHabitDay failed: $e');
+    }
   }
 
   Future<void> deleteHabit(String id) async {
     state = state.where((h) => h.id != id).toList();
-    _firestore?.deleteHabit(id).ignore();
+    try {
+      await _firestore?.deleteHabit(id);
+    } catch (e) {
+      debugPrint('deleteHabit failed: $e');
+    }
   }
 }
 
@@ -522,18 +574,15 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
 
   @override
   List<AIMessage> build() {
-    // Listen to real-time updates from Firestore but only merge when not active
-    // this prevents the "flicker/disappear" issue during AI generation.
-    ref.listen(messagesStreamProvider, (prev, next) {
-      if (!_isGenerating) {
-        final newMessages = next.value ?? [];
-        if (newMessages.isNotEmpty) {
-           state = newMessages;
-        }
-      }
-    });
+    final streamMessages = ref.watch(messagesStreamProvider).value ?? [];
+    
+    // If we're generating, we keep our local state which includes the user's msg and placeholder
+    if (_isGenerating) {
+      return state;
+    }
 
-    return ref.read(messagesStreamProvider).value ?? [];
+    // Otherwise, we use the remote messages from Firestore
+    return streamMessages;
   }
 
   FirestoreService? get _firestore => ref.read(firestoreServiceProvider);
@@ -580,10 +629,10 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
       
       final extraContext = '''
 User Stats:
-- Total Tasks: ${stats['total']}
-- Completed Today: ${stats['todayCompleted']}/${stats['todayTotal']}
-- Pending Today: ${stats['todayPending']}
-- Overdue: ${stats['overdue']}
+- Total Tasks: ${stats['total'] ?? 0}
+- Completed Today: ${stats['todayCompleted'] ?? 0}/${stats['todayTotal'] ?? 0}
+- Pending Today: ${stats['todayPending'] ?? 0}
+- Overdue: ${stats['overdue'] ?? 0}
 
 Habits Streaks:
 ${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: ${h.streak} day streak").join('\n')}
@@ -599,21 +648,57 @@ ${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: $
       );
       
       bool hasData = false;
-      await for (final result in stream) {
-        hasData = true;
+      List<AIAction>? accumulatedActions;
+      String lastEmittedText = '';
+      final stopwatch = Stopwatch()..start();
+
+      try {
+        await for (final result in stream) {
+          hasData = true;
+          if (result.actions != null && result.actions!.isNotEmpty) {
+            accumulatedActions = result.actions;
+          }
+
+          // Phase 2: Throttled UI Updates (Lag Fix)
+          // Update immediately if it's the first data, or if enough time has passed (100ms)
+          // or if the length has grown significantly.
+          final currentText = result.text;
+          final timeSinceLastUpdate = stopwatch.elapsedMilliseconds;
+          
+          if (lastEmittedText.isEmpty || 
+              timeSinceLastUpdate > 100 || 
+              (currentText.length - lastEmittedText.length) > 50) {
+            
+            lastEmittedText = currentText;
+            stopwatch.reset();
+
+            state = [
+              for (final m in state)
+                if (m.id == aiMsgId) 
+                  m.copyWith(
+                    text: currentText.isEmpty ? "Generating strategy..." : currentText,
+                    actions: accumulatedActions,
+                    modelName: result.modelName,
+                  )
+                else m
+            ];
+          }
+        }
+        
+        // Final update to ensure everything is caught
         state = [
           for (final m in state)
             if (m.id == aiMsgId) 
-              AIMessage(
-                id: m.id,
-                text: result.text.isEmpty ? "Processing request..." : result.text,
-                role: m.role,
-                timestamp: m.timestamp,
-                actions: result.actions,
-                modelName: result.modelName,
+              m.copyWith(
+                text: lastEmittedText,
+                actions: accumulatedActions,
               )
             else m
         ];
+      } finally {
+        stopwatch.stop();
+        _isGenerating = false;
+        ref.read(aiLoadingProvider.notifier).set(false);
       }
 
       if (!hasData) {
@@ -676,6 +761,22 @@ ${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: $
           );
           await ref.read(tasksProvider.notifier).addTask(newTask);
           break;
+        case AIActionType.createBulkTasks:
+          final tasksList = (actualParams['tasks'] as List?) ?? [];
+          for (final tData in tasksList) {
+            final p = tData as Map<String, dynamic>;
+            final timestamp = DateTime.now().millisecondsSinceEpoch;
+            final randomSuffix = (1000 + (DateTime.now().microsecond % 9000));
+            final newTask = Task(
+              id: 'task_${timestamp}_$randomSuffix',
+              title: p['title']?.toString() ?? 'Subtask',
+              date: DateTime.tryParse(p['date']?.toString() ?? '') ?? DateTime.now(),
+              priority: TaskPriority.values[(p['priority'] as int? ?? 1).clamp(0, 2)],
+              category: p['category']?.toString() ?? 'Inbox',
+            );
+            await ref.read(tasksProvider.notifier).addTask(newTask);
+          }
+          break;
         case AIActionType.updateTask:
           final p = actualParams;
           final taskId = p['id']?.toString();
@@ -694,6 +795,22 @@ ${habits.isEmpty ? "No habits tracking yet." : habits.map((h) => "- ${h.name}: $
               await ref.read(tasksProvider.notifier).updateTask(updatedTask);
             }
           }
+          break;
+        case AIActionType.generateVisual:
+          final p = actualParams;
+          final prompt = p['prompt']?.toString() ?? 'Strategic visualization';
+          
+          // Generate an image URL using a high-quality free API
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final imageUrl = 'https://pollinations.ai/p/${Uri.encodeComponent(prompt)}?width=1024&height=1024&seed=$timestamp&model=flux';
+          
+          // Update the message with the visual
+          state = [
+            for (final m in state)
+              if (m.id == messageId)
+                m.copyWith(text: '${m.text}\n\n![visual]($imageUrl)')
+              else m
+          ];
           break;
         case AIActionType.completeTask:
           final taskId = actualParams['id']?.toString();

@@ -9,8 +9,9 @@ import '../services/natural_language_parser.dart';
 
 class QuickAddTaskSheet extends ConsumerStatefulWidget {
   final Task? editTask;
+  final DateTime? initialDate;
 
-  const QuickAddTaskSheet({super.key, this.editTask});
+  const QuickAddTaskSheet({super.key, this.editTask, this.initialDate});
 
   @override
   ConsumerState<QuickAddTaskSheet> createState() => _QuickAddTaskSheetState();
@@ -40,12 +41,14 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
       _selectedPriority = t.priority;
       _selectedCategory = t.category;
       _selectedRecurrence = t.recurrence;
-      if (t.time != null) {
+      if (t.time != null && t.time!.contains(':')) {
         final parts = t.time!.split(':');
-        _selectedTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+        final hour = int.tryParse(parts[0]) ?? 12;
+        final minute = int.tryParse(parts[1]) ?? 0;
+        _selectedTime = TimeOfDay(hour: hour, minute: minute);
       }
     } else {
-      _selectedDate = DateTime.now();
+      _selectedDate = widget.initialDate ?? DateTime.now();
       _selectedPriority = TaskPriority.medium;
       _selectedCategory = 'Inbox';
     }

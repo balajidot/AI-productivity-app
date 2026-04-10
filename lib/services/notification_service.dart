@@ -2,6 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -54,28 +55,48 @@ class NotificationService {
 
     final tz.TZDateTime tzDate = tz.TZDateTime.from(scheduledDate, tz.local);
 
-    await _notificationsPlugin.zonedSchedule(
-      id: id,
-      title: 'Obsidian AI Reminder',
-      body: 'Time to start your task: "$title"',
-      scheduledDate: tzDate,
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'task_reminders',
-          'Task Reminders',
-          channelDescription: 'Notifications for scheduled tasks',
-          importance: Importance.max,
-          priority: Priority.high,
-          showWhen: true,
+    try {
+      await _notificationsPlugin.zonedSchedule(
+        id: id,
+        title: 'Obsidian AI Reminder',
+        body: 'Time to start your task: "$title"',
+        scheduledDate: tzDate,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'task_reminders',
+            'Task Reminders',
+            channelDescription: 'Notifications for scheduled tasks',
+            importance: Importance.max,
+            priority: Priority.high,
+            showWhen: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
         ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    } catch (e) {
+      debugPrint('Notification scheduling failed: $e. Falling back to inexact.');
+      // Fallback to inexact if exact fails (common on Android 14+ if permission not granted)
+      await _notificationsPlugin.zonedSchedule(
+        id: id,
+        title: 'Obsidian AI Reminder',
+        body: 'Time to start your task: "$title"',
+        scheduledDate: tzDate,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'task_reminders_inexact',
+            'General Reminders',
+            importance: Importance.defaultImportance,
+            priority: Priority.defaultPriority,
+          ),
         ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    );
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    }
   }
 
   Future<void> cancelReminder(int id) async {

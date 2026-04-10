@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class AnimationConfig {
-  /// Standard duration for professional transitions (250ms)
-  static const Duration standardDuration = Duration(milliseconds: 250);
+  /// Ultra-fast duration for professional transitions (100ms)
+  static const Duration standardDuration = Duration(milliseconds: 100);
   
-  /// Faster duration for quick UI feedback (150ms)
-  static const Duration fastDuration = Duration(milliseconds: 150);
+  /// Near-instant duration for quick UI feedback (50ms)
+  static const Duration fastDuration = Duration(milliseconds: 50);
   
-  /// Slow duration for emphasis only (400ms)
-  static const Duration slowDuration = Duration(milliseconds: 400);
+  /// Standard slow duration (250ms)
+  static const Duration slowDuration = Duration(milliseconds: 250);
 
-  /// Subtle slide offset for professional entry (0.01)
-  static const Offset subtleSlide = Offset(0, 0.01);
+  /// Minimal slide offset (0.005)
+  static const Offset subtleSlide = Offset(0, 0.005);
   
   /// Minimal slide offset for X-axis (0.01)
   static const Offset subtleSlideX = Offset(0.01, 0);

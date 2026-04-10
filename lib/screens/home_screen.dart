@@ -98,7 +98,6 @@ class _HeaderSection extends ConsumerWidget {
                     '${_getGreeting()}, $name.',
                     style: theme.textTheme.displayLarge,
                   ),
-                  slide: AnimationConfig.subtleSlideX,
                 ),
               ],
             ),
@@ -113,6 +112,7 @@ class _HeaderSection extends ConsumerWidget {
                 ref.read(navigationProvider.notifier).set(3);
               },
               child: GlassContainer(
+                blur: 3.0,
                 padding: const EdgeInsets.all(10),
                 borderRadius: 14,
                 color: theme.colorScheme.tertiary,
@@ -177,15 +177,17 @@ class _FocusMessageSection extends ConsumerWidget {
     final theme = Theme.of(context);
     final isLowPerformance = ref.watch(performanceModeProvider);
     
-    return _maybeAnimate(
-      isLowPerformance,
-      Text(
-        _getFocusMessage(),
-        style: theme.textTheme.bodyLarge?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
+    return RepaintBoundary(
+      child: _maybeAnimate(
+        isLowPerformance,
+        Text(
+          _getFocusMessage(),
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
+        delay: AnimationConfig.staggerDelay * 2,
       ),
-      delay: AnimationConfig.staggerDelay * 2,
     );
   }
 }
@@ -239,7 +241,6 @@ class _StatsSection extends ConsumerWidget {
         ),
       ),
       delay: AnimationConfig.staggerDelay * 3,
-      slide: AnimationConfig.subtleSlide,
     );
   }
 }
@@ -262,6 +263,7 @@ class _StatCard extends StatelessWidget {
         onTap();
       },
       child: GlassContainer(
+        blur: 5.0,
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,6 +349,7 @@ class _AISuggestionsSection extends ConsumerWidget {
                     width: MediaQuery.of(context).size.width * 0.75,
                     margin: const EdgeInsets.only(right: 12),
                     child: GlassContainer(
+                      blur: 3.0,
                       color: theme.colorScheme.surfaceContainer,
                       padding: const EdgeInsets.all(16),
                       child: Row(
@@ -454,6 +457,7 @@ class _TodaySection extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             sliver: SliverToBoxAdapter(
               child: GlassContainer(
+                blur: 3.0,
                 child: Row(
                   children: [
                     Icon(LucideIcons.sunrise, color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5), size: 20),
@@ -544,6 +548,7 @@ class _QuickActionBtn extends StatelessWidget {
         onTap();
       },
       child: GlassContainer(
+        blur: 5.0,
         padding: const EdgeInsets.all(16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -558,17 +563,12 @@ class _QuickActionBtn extends StatelessWidget {
   }
 }
 
-// Utility for smooth performance
-Widget _maybeAnimate(bool isLowPerformance, Widget child, {Duration? duration, Duration? delay, Offset? slide}) {
+// Utility for smooth performance - Fast Fade only
+Widget _maybeAnimate(bool isLowPerformance, Widget child, {Duration? duration, Duration? delay}) {
   if (isLowPerformance) return child;
   return child
       .animate(delay: delay)
       .fadeIn(
-        duration: duration ?? AnimationConfig.standardDuration,
-        curve: AnimationConfig.professionalCurve,
-      )
-      .slide(
-        begin: slide ?? AnimationConfig.subtleSlide,
         duration: duration ?? AnimationConfig.standardDuration,
         curve: AnimationConfig.professionalCurve,
       );

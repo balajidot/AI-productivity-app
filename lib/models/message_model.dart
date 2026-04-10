@@ -43,4 +43,21 @@ class AIMessage {
       modelName: map['modelName']?.toString(),
     );
   }
+  AIMessage copyWith({
+    String? id,
+    String? text,
+    MessageRole? role,
+    DateTime? timestamp,
+    List<AIAction>? actions,
+    String? modelName,
+  }) {
+    return AIMessage(
+      id: id ?? this.id,
+      text: text ?? this.text,
+      role: role ?? this.role,
+      timestamp: timestamp ?? this.timestamp,
+      actions: actions ?? this.actions,
+      modelName: modelName ?? this.modelName,
+    );
+  }
 }

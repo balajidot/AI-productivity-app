@@ -40,7 +40,10 @@ class FirestoreService {
       for (var id in chunk) {
         batch.delete(_tasksRef.doc(id));
       }
-      await batch.commit();
+      await batch.commit().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception('Delete operation timed out. Please check your connection.'),
+      );
     }
   }
 
@@ -95,7 +98,10 @@ class FirestoreService {
       for (var doc in chunk) {
         batch.delete(doc.reference);
       }
-      await batch.commit();
+      await batch.commit().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception('Clear history timed out. Some items may not have been deleted.'),
+      );
     }
   }
 }

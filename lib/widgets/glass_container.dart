@@ -17,7 +17,7 @@ class GlassContainer extends ConsumerWidget {
   const GlassContainer({
     super.key,
     required this.child,
-    this.blur = 10.0, // Optimized for performance/battery
+    this.blur = 3.0, // Reduced from 5.0 for better frame rates on scrolling
     this.opacity = 0.6,
     this.borderRadius = 16.0,
     this.padding = const EdgeInsets.all(16.0),
@@ -80,11 +80,14 @@ class GlassContainer extends ConsumerWidget {
       );
     }
 
+    // Optimization: Wrap BackdropFilter in RepaintBoundary to cache the composite layer
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: content,
+      child: RepaintBoundary(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+          child: content,
+        ),
       ),
     );
   }

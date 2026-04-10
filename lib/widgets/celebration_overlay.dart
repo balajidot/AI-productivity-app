@@ -12,7 +12,7 @@ class CelebrationOverlay {
 
     Overlay.of(context).insert(overlay);
 
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    Future.delayed(const Duration(milliseconds: 900), () {
       overlay.remove();
     });
   }
@@ -36,7 +36,7 @@ class _CelebrationWidgetState extends State<_CelebrationWidget>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 800),
     );
 
     _particles = List.generate(30, (_) => _ConfettiParticle(_random));

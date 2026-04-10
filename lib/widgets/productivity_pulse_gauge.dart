@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/animation_config.dart';
 
 class ProductivityPulseGauge extends StatefulWidget {
   final double progress; // 0.0 to 1.0
@@ -26,7 +27,7 @@ class _ProductivityPulseGaugeState extends State<ProductivityPulseGauge>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: AnimationConfig.slowDuration * 2, // 800ms
     );
     _animation = Tween<double>(begin: 0, end: widget.progress).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutQuart),

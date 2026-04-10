@@ -8,19 +8,22 @@ import 'services/notification_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/app_providers.dart';
 
+Future<bool> initializeFirebase() async {
+  try {
+    await Firebase.initializeApp();
+    return true;
+  } catch (e) {
+    debugPrint('Firebase initialization error: $e');
+    return false;
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  bool firebaseInitialized = false;
-  try {
-    await Firebase.initializeApp();
-    firebaseInitialized = true;
-  } catch (e) {
-    debugPrint('Firebase initialization error: $e');
-    firebaseInitialized = false;
-  }
+  final bool firebaseInitialized = await initializeFirebase();
   
-  // Initialize services
+  // Initialize other services
   await NotificationService().init();
   
   runApp(
@@ -30,28 +33,42 @@ void main() async {
   );
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends StatefulWidget {
   final bool isFirebaseAvailable;
   const MyApp({super.key, required this.isFirebaseAvailable});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
-    final settings = ref.watch(appSettingsProvider);
+  State<MyApp> createState() => _MyAppState();
+}
 
-    ThemeMode themeMode;
-    switch (settings.themeMode) {
-      case 'Light':
-        themeMode = ThemeMode.light;
-        break;
-      case 'Dark':
-        themeMode = ThemeMode.dark;
-        break;
-      default:
-        themeMode = ThemeMode.system;
+class _MyAppState extends State<MyApp> {
+  late bool _isFirebaseAvailable;
+  bool _isRetrying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isFirebaseAvailable = widget.isFirebaseAvailable;
+  }
+
+  Future<void> _handleRetry() async {
+    setState(() {
+      _isRetrying = true;
+    });
+    
+    final result = await initializeFirebase();
+    
+    if (mounted) {
+      setState(() {
+        _isFirebaseAvailable = result;
+        _isRetrying = false;
+      });
     }
+  }
 
-    if (!isFirebaseAvailable) {
+  @override
+  Widget build(BuildContext context) {
+    if (!_isFirebaseAvailable) {
       return MaterialApp(
         title: 'Obsidian AI',
         debugShowCheckedModeBanner: false,
@@ -75,10 +92,13 @@ class MyApp extends ConsumerWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () => main(),
-                    child: const Text('Try Again'),
-                  ),
+                  if (_isRetrying)
+                    const CircularProgressIndicator()
+                  else
+                    ElevatedButton(
+                      onPressed: _handleRetry,
+                      child: const Text('Try Again'),
+                    ),
                 ],
               ),
             ),
@@ -87,26 +107,45 @@ class MyApp extends ConsumerWidget {
       );
     }
 
-    return MaterialApp(
-      title: 'Obsidian AI',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
-      home: authState.when(
-        data: (user) {
-          if (user != null) {
-            return const MainNavigation();
-          }
-          return const LoginScreen();
-        },
-        loading: () => const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
+    return Consumer(
+      builder: (context, ref, child) {
+        final authState = ref.watch(authStateProvider);
+        final settings = ref.watch(appSettingsProvider);
+
+        ThemeMode themeMode;
+        switch (settings.themeMode) {
+          case 'Light':
+            themeMode = ThemeMode.light;
+            break;
+          case 'Dark':
+            themeMode = ThemeMode.dark;
+            break;
+          default:
+            themeMode = ThemeMode.system;
+        }
+
+        return MaterialApp(
+          title: 'Obsidian AI',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeMode,
+          home: authState.when(
+            data: (user) {
+              if (user != null) {
+                return const MainNavigation();
+              }
+              return const LoginScreen();
+            },
+            loading: () => const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (e, st) => const LoginScreen(), // Fallback
           ),
-        ),
-        error: (e, st) => const LoginScreen(), // Fallback
-      ),
+        );
+      },
     );
   }
 }

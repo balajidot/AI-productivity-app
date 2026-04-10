@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:animations/animations.dart';
 import '../screens/home_screen.dart';
 import '../screens/tasks_screen.dart';
 import '../screens/calendar_screen.dart';
@@ -66,20 +65,9 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     });
 
     return Scaffold(
-      body: PageTransitionSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animation, secondaryAnimation) {
-          return FadeThroughTransition(
-            animation: animation,
-            secondaryAnimation: secondaryAnimation,
-            fillColor: Colors.transparent,
-            child: child,
-          );
-        },
-        child: KeyedSubtree(
-          key: ValueKey<int>(selectedIndex),
-          child: _screens[selectedIndex],
-        ),
+      body: IndexedStack(
+        index: selectedIndex,
+        children: _screens,
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,

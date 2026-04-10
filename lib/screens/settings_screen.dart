@@ -8,6 +8,7 @@ import '../theme/app_colors.dart';
 import '../widgets/glass_container.dart';
 import '../providers/auth_provider.dart';
 import '../providers/app_providers.dart';
+import '../config/animation_config.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -19,6 +20,7 @@ class SettingsScreen extends ConsumerWidget {
     final userPhoto = ref.watch(userPhotoProvider);
     final settings = ref.watch(appSettingsProvider);
     final settingsNotifier = ref.read(appSettingsProvider.notifier);
+    final isLowPerformance = ref.watch(performanceModeProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -28,28 +30,33 @@ class SettingsScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header with Back Button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const GlassContainer(
-                      padding: EdgeInsets.all(10),
-                      borderRadius: 12,
-                      child: Icon(LucideIcons.chevronLeft, size: 20),
+              RepaintBoundary(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: GlassContainer(
+                        blur: 3.0,
+                        padding: const EdgeInsets.all(10),
+                        borderRadius: 12,
+                        child: Icon(LucideIcons.chevronLeft, size: 20, color: Theme.of(context).colorScheme.onSurface),
+                      ),
                     ),
-                  ),
-                  Text(
-                    'Settings',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(width: 44), // Placeholder for balance
-                ],
+                    Text(
+                      'Settings',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(width: 44),
+                  ],
+                ),
               ),
               const SizedBox(height: 40),
 
               // Profile Section
-              _buildProfileHeader(context, ref, userName, userEmail, userPhoto),
+              RepaintBoundary(
+                child: _buildProfileHeader(context, ref, userName, userEmail, userPhoto, isLowPerformance),
+              ),
               const SizedBox(height: 32),
 
               // Settings Sections
@@ -60,6 +67,7 @@ class SettingsScreen extends ConsumerWidget {
                 icon: LucideIcons.brain,
                 title: 'Smart Task Analysis',
                 subtitle: 'AI-powered task decomposition',
+                isLowPerformance: isLowPerformance,
                 trailing: Switch(
                   value: settings.smartAnalysis,
                   onChanged: (v) {
@@ -75,6 +83,7 @@ class SettingsScreen extends ConsumerWidget {
                 icon: LucideIcons.sparkles,
                 title: 'AI Persona Tone',
                 subtitle: settings.aiTone,
+                isLowPerformance: isLowPerformance,
                 onTap: () {
                   HapticFeedback.selectionClick();
                   _showSelectionDialog(
@@ -98,6 +107,7 @@ class SettingsScreen extends ConsumerWidget {
                 icon: LucideIcons.bell,
                 title: 'Notifications',
                 subtitle: settings.notificationsEnabled ? 'Enabled' : 'Disabled',
+                isLowPerformance: isLowPerformance,
                 trailing: Switch(
                   value: settings.notificationsEnabled,
                   onChanged: (v) {
@@ -113,6 +123,7 @@ class SettingsScreen extends ConsumerWidget {
                 icon: LucideIcons.moon,
                 title: 'Focus Theme',
                 subtitle: settings.themeMode,
+                isLowPerformance: isLowPerformance,
                 onTap: () {
                   HapticFeedback.selectionClick();
                   _showSelectionDialog(
@@ -135,6 +146,7 @@ class SettingsScreen extends ConsumerWidget {
                 context,
                 icon: LucideIcons.shieldCheck,
                 title: 'Privacy Policy',
+                isLowPerformance: isLowPerformance,
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Privacy Policy coming soon!')),
@@ -146,6 +158,7 @@ class SettingsScreen extends ConsumerWidget {
                 icon: LucideIcons.database,
                 title: 'Data Sync',
                 subtitle: 'Synced with Firebase',
+                isLowPerformance: isLowPerformance,
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Data synced successfully!')),
@@ -155,33 +168,37 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 40),
 
               // Logout Button
-              GlassContainer(
-                color: AppColors.error,
-                opacity: 0.1,
-                padding: EdgeInsets.zero,
-                child: InkWell(
-                  onTap: () => _showSignOutDialog(context, ref),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(LucideIcons.logOut, color: AppColors.error, size: 20),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Sign Out',
-                          style: GoogleFonts.inter(
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
+              _maybeAnimate(
+                isLowPerformance,
+                GlassContainer(
+                  color: AppColors.error,
+                  opacity: 0.1,
+                  padding: EdgeInsets.zero,
+                  child: InkWell(
+                    onTap: () => _showSignOutDialog(context, ref),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(LucideIcons.logOut, color: AppColors.error, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Sign Out',
+                            style: GoogleFonts.inter(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ).animate().fadeIn(delay: 600.ms),
+                delay: 600.ms,
+              ),
               
               const SizedBox(height: 24),
               Center(
@@ -200,8 +217,8 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, WidgetRef ref, String name, String email, String? photo) {
-    return GlassContainer(
+  Widget _buildProfileHeader(BuildContext context, WidgetRef ref, String name, String email, String? photo, bool isLowPerformance) {
+    final headerContent = GlassContainer(
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
@@ -258,7 +275,14 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1);
+    );
+
+    return _maybeAnimate(
+      isLowPerformance,
+      headerContent,
+      duration: 600.ms,
+      slideY: isLowPerformance ? 0 : 0.1,
+    );
   }
 
   void _showEditProfileDialog(BuildContext context, WidgetRef ref, String currentName) {
@@ -336,7 +360,7 @@ class SettingsScreen extends ConsumerWidget {
           letterSpacing: 1.5,
         ),
       ),
-    ).animate().fadeIn(delay: 200.ms);
+    );
   }
 
   Widget _buildSettingItem(
@@ -346,10 +370,12 @@ class SettingsScreen extends ConsumerWidget {
     String? subtitle,
     Widget? trailing,
     VoidCallback? onTap,
+    bool isLowPerformance = false,
   }) {
-    return Padding(
+    final item = Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GlassContainer(
+        blur: 3.0,
         padding: EdgeInsets.zero,
         child: ListTile(
           onTap: onTap,
@@ -375,7 +401,30 @@ class SettingsScreen extends ConsumerWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
-    ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.05);
+    );
+
+    return _maybeAnimate(
+      isLowPerformance,
+      item,
+      delay: 300.ms,
+      slideX: isLowPerformance ? 0 : 0.05,
+    );
+  }
+
+  // Utility for smooth performance - Fast Fade only
+  Widget _maybeAnimate(bool isLowPerformance, Widget child, {Duration? duration, Duration? delay, double slideX = 0, double slideY = 0}) {
+    if (isLowPerformance) return child;
+    var anim = child
+        .animate(delay: delay)
+        .fadeIn(
+          duration: duration ?? AnimationConfig.standardDuration,
+          curve: AnimationConfig.professionalCurve,
+        );
+    
+    if (slideX != 0) anim = anim.slideX(begin: slideX, curve: AnimationConfig.professionalCurve);
+    if (slideY != 0) anim = anim.slideY(begin: slideY, curve: AnimationConfig.professionalCurve);
+    
+    return anim;
   }
 
 
