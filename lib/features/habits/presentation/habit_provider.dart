@@ -26,7 +26,10 @@ class HabitNotifier extends Notifier<List<Habit>> {
       await ref.read(firestoreServiceProvider)?.saveHabit(habit);
     } catch (e) {
       state = previousState;
-      ref.read(feedbackProvider.notifier).showError(ServiceFailure.fromFirestore(e));
+      ref.read(feedbackProvider.notifier).showError(
+        ServiceFailure.fromFirestore(e),
+        onRetry: () => addHabit(habit),
+      );
     }
   }
 
@@ -77,7 +80,10 @@ class HabitNotifier extends Notifier<List<Habit>> {
       await ref.read(firestoreServiceProvider)?.saveHabit(updatedHabit);
     } catch (e) {
       state = previousState;
-      ref.read(feedbackProvider.notifier).showError(ServiceFailure.fromFirestore(e));
+      ref.read(feedbackProvider.notifier).showError(
+        ServiceFailure.fromFirestore(e),
+        onRetry: () => toggleHabitDay(id, date),
+      );
     }
   }
 
@@ -92,7 +98,10 @@ class HabitNotifier extends Notifier<List<Habit>> {
       await ref.read(firestoreServiceProvider)?.saveHabit(updatedHabit);
     } catch (e) {
       state = previousState;
-      ref.read(feedbackProvider.notifier).showError(ServiceFailure.fromFirestore(e));
+      ref.read(feedbackProvider.notifier).showError(
+        ServiceFailure.fromFirestore(e),
+        onRetry: () => updateHabit(id, name: name, icon: icon),
+      );
     }
   }
 
@@ -103,7 +112,10 @@ class HabitNotifier extends Notifier<List<Habit>> {
       await ref.read(firestoreServiceProvider)?.deleteHabit(id);
     } catch (e) {
       state = previousState;
-      ref.read(feedbackProvider.notifier).showError(ServiceFailure.fromFirestore(e));
+      ref.read(feedbackProvider.notifier).showError(
+        ServiceFailure.fromFirestore(e),
+        onRetry: () => deleteHabit(id),
+      );
     }
   }
 }

@@ -73,10 +73,9 @@ class Habit {
 
   bool get completedToday {
     if (completedDates.isEmpty) return false;
-    final last = completedDates.last;
     final now = DateTime.now();
-    return last.year == now.year &&
-        last.month == now.month &&
-        last.day == now.day;
+    return completedDates.any(
+      (d) => d.year == now.year && d.month == now.month && d.day == now.day,
+    );
   }
 }

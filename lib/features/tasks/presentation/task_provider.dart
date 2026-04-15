@@ -440,7 +440,10 @@ class TaskNotifier extends Notifier<TaskPaginationState> {
     } else if (normalized == 'weekly') {
       return from.add(const Duration(days: 7));
     } else if (normalized == 'monthly') {
-      return DateTime(from.year, from.month + 1, from.day);
+      // Clamp day to the last valid day of the next month (e.g. Jan 31 → Feb 28)
+      final lastDayOfNextMonth = DateTime(from.year, from.month + 2, 0).day;
+      final safeDay = from.day <= lastDayOfNextMonth ? from.day : lastDayOfNextMonth;
+      return DateTime(from.year, from.month + 1, safeDay);
     } else if (normalized.startsWith('every ')) {
       final dayName = normalized.replaceFirst('every ', '').trim();
       final targetDay = _dayNameToInt(dayName);
