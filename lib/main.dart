@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'theme/app_theme.dart';
-import 'screens/main_navigation.dart';
-import 'screens/login_screen.dart';
-import 'services/notification_service.dart';
-import 'providers/auth_provider.dart';
-import 'providers/app_providers.dart';
+import 'core/theme/app_theme.dart';
+import 'core/navigation/main_navigation.dart';
+import 'features/auth/presentation/login_screen.dart';
+import 'core/services/notification_service.dart';
+import 'core/providers/providers.dart';
+import 'firebase_options.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 Future<bool> initializeFirebase() async {
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint('Firebase: Initialized successfully for project: ${DefaultFirebaseOptions.currentPlatform.projectId}');
     return true;
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
@@ -26,8 +31,14 @@ void main() async {
   // Initialize other services
   await NotificationService().init();
   
+  // Initialize SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
+  
   runApp(
     ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
       child: MyApp(isFirebaseAvailable: firebaseInitialized),
     ),
   );

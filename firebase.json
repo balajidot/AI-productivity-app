@@ -1,0 +1,27 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "obsidian-ai-c8836",
+          "appId": "1:732489406915:android:4f574ccf3fc29acc960576",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "obsidian-ai-c8836",
+          "configurations": {
+            "android": "1:732489406915:android:4f574ccf3fc29acc960576",
+            "ios": "1:732489406915:ios:dfa619fe99f9f043960576",
+            "web": "1:732489406915:web:9b950999faf00f07960576"
+          }
+        }
+      }
+    }
+  }
+}
