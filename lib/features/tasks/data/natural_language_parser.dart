@@ -185,6 +185,8 @@ class NaturalLanguageParser {
       parsedCategory = categoryMatch.group(1)!.substring(0, 1).toUpperCase() +
           categoryMatch.group(1)!.substring(1).toLowerCase();
       text = text.replaceAll(categoryMatch.group(0)!, '');
+    } else {
+      parsedCategory = _inferCategory(text);
     }
 
     // --- Recurrence Detection ---
@@ -274,5 +276,37 @@ class NaturalLanguageParser {
     int daysAhead = targetDay - from.weekday;
     if (daysAhead < 0) daysAhead += 7;
     return from.add(Duration(days: daysAhead));
+  }
+
+  static String? _inferCategory(String text) {
+    final workKeywords = ['meeting', 'call', 'email', 'report', 'project', 'client', 'boss', 'presentation', 'slide', 'deploy', 'code'];
+    final personalKeywords = ['buy', 'groceries', 'milk', 'clean', 'ticket', 'home', 'house', 'laundry', 'cook', 'dinner', 'shop', 'clean'];
+    final healthKeywords = ['workout', 'gym', 'run', 'water', 'doctor', 'medicine', 'pill', 'yoga', 'walk', 'exercise', 'hospital'];
+    final studyKeywords = ['read', 'learn', 'course', 'chapter', 'assignment', 'homework', 'exam', 'test', 'study', 'book'];
+    final financeKeywords = ['pay', 'bill', 'rent', 'budget', 'transfer', 'money', 'bank', 'tax', 'fee'];
+
+    int getScore(List<String> keywords) {
+      return keywords.where((w) => RegExp('\\b$w\\b', caseSensitive: false).hasMatch(text)).length;
+    }
+
+    int maxScore = 0;
+    String? bestCategory;
+
+    final scores = {
+      'Work': getScore(workKeywords),
+      'Personal': getScore(personalKeywords),
+      'Health': getScore(healthKeywords),
+      'Study': getScore(studyKeywords),
+      'Finance': getScore(financeKeywords),
+    };
+
+    scores.forEach((category, score) {
+      if (score > maxScore) {
+        maxScore = score;
+        bestCategory = category;
+      }
+    });
+
+    return maxScore > 0 ? bestCategory : null;
   }
 }

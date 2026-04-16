@@ -168,6 +168,14 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
     ];
   }
 
+  Future<void> executeSyntheticAction(AIAction action) async {
+    try {
+      await _runActionLogic(action, action.parameters);
+    } catch (e) {
+      ref.read(feedbackProvider.notifier).showError('Action failed. Please try again.');
+    }
+  }
+
   Future<void> executeAction(
     String messageId,
     String actionId, {
@@ -188,119 +196,128 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
 
     try {
       final p = {...action.parameters, ...?parametersOverride};
-      switch (action.type) {
-        case AIActionType.createTask:
+      await _runActionLogic(action, p, messageId: messageId);
+      _markActionExecuted(messageId, actionId);
+    } catch (e) {
+      ref.read(feedbackProvider.notifier).showError('Action failed. Please try again.');
+    }
+  }
+
+  Future<void> _runActionLogic(AIAction action, Map<String, dynamic> p, {String? messageId}) async {
+    switch (action.type) {
+      case AIActionType.createTask:
+        await ref
+            .read(tasksProvider.notifier)
+            .addTask(_buildTaskFromParams(p));
+        break;
+      case AIActionType.createBulkTasks:
+        final rawTasks = p['tasks'];
+        if (rawTasks is List) {
+          for (final rawTask in rawTasks) {
+            if (rawTask is Map) {
+              final normalized = Map<String, dynamic>.from(rawTask);
+              await ref
+                  .read(tasksProvider.notifier)
+                  .addTask(_buildTaskFromParams(normalized));
+            }
+          }
+        }
+        break;
+      case AIActionType.completeTask:
+        await ref.read(tasksProvider.notifier).toggleTask(p['id']);
+        break;
+      case AIActionType.deleteTasks:
+        final ids = (p['ids'] as List?)?.map((e) => e.toString()).toList();
+        if (ids != null) {
+          await ref.read(tasksProvider.notifier).deleteTasks(ids);
+        }
+        break;
+      case AIActionType.updateTask:
+        final taskId = p['id']?.toString();
+        if (taskId != null) {
+          final tasks2 = ref.read(tasksProvider);
+          final taskIndex = tasks2.tasks.indexWhere((t) => t.id == taskId);
+          if (taskIndex != -1) {
+            final existing = tasks2.tasks[taskIndex];
+            final rawPriority = p['priority'];
+            final priorityIndex = rawPriority is int
+                ? rawPriority
+                : int.tryParse(rawPriority?.toString() ?? '');
+            await ref.read(tasksProvider.notifier).updateTask(
+              existing.copyWith(
+                title: p['title']?.toString() ?? existing.title,
+                category: p['category']?.toString() ?? existing.category,
+                priority: priorityIndex != null
+                    ? TaskPriority.values[priorityIndex.clamp(0, 2)]
+                    : existing.priority,
+                date: p['date'] != null
+                    ? DateTime.tryParse(p['date'].toString()) ?? existing.date
+                    : existing.date,
+                time: p['time']?.toString() ?? existing.time,
+              ),
+            );
+          }
+        }
+        break;
+      case AIActionType.deleteTask:
+        final id = p['id']?.toString();
+        if (id != null) {
+          await ref.read(tasksProvider.notifier).deleteTask(id);
+        }
+        break;
+      case AIActionType.setHabit:
+        await ref.read(habitsProvider.notifier).addHabit(
+          Habit(
+            id: AppUtils.generateId(prefix: 'habit'),
+            name: p['name']?.toString() ?? 'New Habit',
+            icon: p['icon']?.toString() ?? 'star',
+          ),
+        );
+        break;
+      case AIActionType.updateHabit:
+        final habitId = p['id']?.toString();
+        if (habitId != null) {
+          final toggle = p['toggle'] as bool? ?? false;
+          if (toggle) {
+            await ref
+                .read(habitsProvider.notifier)
+                .toggleHabitDay(habitId, DateTime.now());
+          } else {
+            await ref.read(habitsProvider.notifier).updateHabit(
+              habitId,
+              name: p['name']?.toString(),
+              icon: p['icon']?.toString(),
+            );
+          }
+        }
+        break;
+      case AIActionType.rescheduleAll:
+        final overdueTasks = ref.read(overdueTasksProvider);
+        final now = DateTime.now();
+        for (final t in overdueTasks) {
           await ref
               .read(tasksProvider.notifier)
-              .addTask(_buildTaskFromParams(p));
-          break;
-        case AIActionType.createBulkTasks:
-          final rawTasks = p['tasks'];
-          if (rawTasks is List) {
-            for (final rawTask in rawTasks) {
-              if (rawTask is Map) {
-                final normalized = Map<String, dynamic>.from(rawTask);
-                await ref
-                    .read(tasksProvider.notifier)
-                    .addTask(_buildTaskFromParams(normalized));
-              }
-            }
-          }
-          break;
-        case AIActionType.completeTask:
-          await ref.read(tasksProvider.notifier).toggleTask(p['id']);
-          break;
-        case AIActionType.deleteTasks:
-          final ids = (p['ids'] as List?)?.map((e) => e.toString()).toList();
-          if (ids != null) {
-            await ref.read(tasksProvider.notifier).deleteTasks(ids);
-          }
-          break;
-        case AIActionType.updateTask:
-          final taskId = p['id']?.toString();
-          if (taskId != null) {
-            final tasks2 = ref.read(tasksProvider);
-            final taskIndex = tasks2.tasks.indexWhere((t) => t.id == taskId);
-            if (taskIndex != -1) {
-              final existing = tasks2.tasks[taskIndex];
-              final rawPriority = p['priority'];
-              final priorityIndex = rawPriority is int
-                  ? rawPriority
-                  : int.tryParse(rawPriority?.toString() ?? '');
-              await ref.read(tasksProvider.notifier).updateTask(
-                existing.copyWith(
-                  title: p['title']?.toString() ?? existing.title,
-                  category: p['category']?.toString() ?? existing.category,
-                  priority: priorityIndex != null
-                      ? TaskPriority.values[priorityIndex.clamp(0, 2)]
-                      : existing.priority,
-                  date: p['date'] != null
-                      ? DateTime.tryParse(p['date'].toString()) ?? existing.date
-                      : existing.date,
-                  time: p['time']?.toString() ?? existing.time,
-                ),
-              );
-            }
-          }
-          break;
-        case AIActionType.deleteTask:
-          final id = p['id']?.toString();
-          if (id != null) {
-            await ref.read(tasksProvider.notifier).deleteTask(id);
-          }
-          break;
-        case AIActionType.setHabit:
-          await ref.read(habitsProvider.notifier).addHabit(
-            Habit(
-              id: AppUtils.generateId(prefix: 'habit'),
-              name: p['name']?.toString() ?? 'New Habit',
-              icon: p['icon']?.toString() ?? 'star',
-            ),
-          );
-          break;
-        case AIActionType.updateHabit:
-          final habitId = p['id']?.toString();
-          if (habitId != null) {
-            final toggle = p['toggle'] as bool? ?? false;
-            if (toggle) {
-              await ref
-                  .read(habitsProvider.notifier)
-                  .toggleHabitDay(habitId, DateTime.now());
-            } else {
-              await ref.read(habitsProvider.notifier).updateHabit(
-                habitId,
-                name: p['name']?.toString(),
-                icon: p['icon']?.toString(),
-              );
-            }
-          }
-          break;
-        case AIActionType.rescheduleAll:
-          final overdueTasks = ref.read(overdueTasksProvider);
-          final now = DateTime.now();
-          for (final t in overdueTasks) {
-            await ref
-                .read(tasksProvider.notifier)
-                .updateTask(t.copyWith(date: now));
-          }
-          break;
-        case AIActionType.multiAction:
-          final subActions = p['actions'];
-          if (subActions is List) {
-            for (final sub in subActions) {
-              if (sub is Map) {
-                final subMap = Map<String, dynamic>.from(sub);
-                final subTypeIndex = subMap['type'] as int? ?? -1;
-                if (subTypeIndex >= 0 &&
-                    subTypeIndex < AIActionType.values.length) {
-                  final subAction = AIAction(
-                    id: AppUtils.generateId(prefix: 'sub'),
-                    type: AIActionType.values[subTypeIndex],
-                    parameters: Map<String, dynamic>.from(
-                      subMap['parameters'] ?? {},
-                    ),
-                  );
-                  // Temporarily inject into state and execute
+              .updateTask(t.copyWith(date: now));
+        }
+        break;
+      case AIActionType.multiAction:
+        final subActions = p['actions'];
+        if (subActions is List) {
+          for (final sub in subActions) {
+            if (sub is Map) {
+              final subMap = Map<String, dynamic>.from(sub);
+              final subTypeIndex = subMap['type'] as int? ?? -1;
+              if (subTypeIndex >= 0 &&
+                  subTypeIndex < AIActionType.values.length) {
+                final subAction = AIAction(
+                  id: AppUtils.generateId(prefix: 'sub'),
+                  type: AIActionType.values[subTypeIndex],
+                  parameters: Map<String, dynamic>.from(
+                    subMap['parameters'] ?? {},
+                  ),
+                );
+                // Temporarily inject into state and execute
+                if (messageId != null) {
                   final tempMsgId = messageId;
                   final tempActionId = subAction.id;
                   final tempMsg = state.firstWhere(
@@ -319,23 +336,23 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
                         m,
                   ];
                   await executeAction(tempMsgId, tempActionId);
+                } else {
+                  await executeSyntheticAction(subAction);
                 }
               }
             }
           }
-          break;
-        case AIActionType.suggestion:
-          sendMessage("[Chosen: ${p['label']}] ${p['value']}").ignore();
-          break;
-        case AIActionType.deleteRecord:
-        case AIActionType.generateVisual:
-          // Not implemented — silently mark as executed
-          break;
-      }
-      _markActionExecuted(messageId, actionId);
-    } catch (e) {
-      ref.read(feedbackProvider.notifier).showError('Action failed. Please try again.');
+        }
+        break;
+      case AIActionType.suggestion:
+        sendMessage("[Chosen: ${p['label']}] ${p['value']}").ignore();
+        break;
+      case AIActionType.deleteRecord:
+      case AIActionType.generateVisual:
+        // Not implemented — silently mark as executed
+        break;
     }
+
   }
 
   Future<void> rejectAction(String messageId, String actionId) async {

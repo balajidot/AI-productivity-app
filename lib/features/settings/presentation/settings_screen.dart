@@ -287,6 +287,25 @@ class SettingsScreen extends ConsumerWidget {
                                 );
                               },
                             ),
+                            _buildSettingItem(
+                              context,
+                              icon: LucideIcons.moon,
+                              title: 'Strict Mode (Zen Mode)',
+                              subtitle: 'Fails Pomodoro if app is minimized',
+                              trailing: Switch(
+                                value: settings.zenModeEnabled,
+                                onChanged: (value) {
+                                  HapticFeedback.lightImpact();
+                                  notifier.updateZenMode(value);
+                                },
+                                activeTrackColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.5),
+                                activeThumbColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                              ),
+                            ),
                           ],
                         );
                       },

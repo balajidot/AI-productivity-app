@@ -9,6 +9,7 @@ class AppSettings {
   final int pomodoroDuration;   // minutes, default 25
   final int shortBreakDuration; // minutes, default 5
   final int longBreakDuration;  // minutes, default 15
+  final bool zenModeEnabled;
 
   const AppSettings({
     this.smartAnalysis = true,
@@ -21,6 +22,7 @@ class AppSettings {
     this.pomodoroDuration = 25,
     this.shortBreakDuration = 5,
     this.longBreakDuration = 15,
+    this.zenModeEnabled = false,
   });
 
   AppSettings copyWith({
@@ -34,6 +36,7 @@ class AppSettings {
     int? pomodoroDuration,
     int? shortBreakDuration,
     int? longBreakDuration,
+    bool? zenModeEnabled,
   }) {
     return AppSettings(
       smartAnalysis: smartAnalysis ?? this.smartAnalysis,
@@ -46,6 +49,7 @@ class AppSettings {
       pomodoroDuration: pomodoroDuration ?? this.pomodoroDuration,
       shortBreakDuration: shortBreakDuration ?? this.shortBreakDuration,
       longBreakDuration: longBreakDuration ?? this.longBreakDuration,
+      zenModeEnabled: zenModeEnabled ?? this.zenModeEnabled,
     );
   }
 
@@ -61,6 +65,7 @@ class AppSettings {
       'pomodoroDuration': pomodoroDuration,
       'shortBreakDuration': shortBreakDuration,
       'longBreakDuration': longBreakDuration,
+      'zenModeEnabled': zenModeEnabled,
     };
   }
 
@@ -76,6 +81,7 @@ class AppSettings {
       pomodoroDuration: (map['pomodoroDuration'] as num?)?.toInt() ?? 25,
       shortBreakDuration: (map['shortBreakDuration'] as num?)?.toInt() ?? 5,
       longBreakDuration: (map['longBreakDuration'] as num?)?.toInt() ?? 15,
+      zenModeEnabled: map['zenModeEnabled'] as bool? ?? false,
     );
   }
 }

@@ -150,49 +150,31 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
 
     return Scaffold(
       body: IndexedStack(index: selectedIndex, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (index) {
-          ref.read(navigationProvider.notifier).set(index);
-        },
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(LucideIcons.home),
-            selectedIcon:
-                Icon(LucideIcons.home, color: theme.colorScheme.primary),
-            label: 'Home',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainer,
+          border: Border(
+            top: BorderSide(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            ),
           ),
-          NavigationDestination(
-            icon: const Icon(LucideIcons.checkSquare),
-            selectedIcon: Icon(LucideIcons.checkSquare,
-                color: theme.colorScheme.primary),
-            label: 'Tasks',
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                _buildNavItem(context, theme, index: 0, label: 'Home', icon: LucideIcons.home, selectedIndex: selectedIndex),
+                _buildNavItem(context, theme, index: 1, label: 'Tasks', icon: LucideIcons.checkSquare, selectedIndex: selectedIndex),
+                _buildNavItem(context, theme, index: 2, label: 'Schedule', icon: LucideIcons.calendar, selectedIndex: selectedIndex),
+                _buildNavItem(context, theme, index: 3, label: 'AI', icon: LucideIcons.messageSquare, selectedIndex: selectedIndex),
+                _buildNavItem(context, theme, index: 4, label: 'Habits', icon: LucideIcons.repeat, selectedIndex: selectedIndex),
+                _buildNavItem(context, theme, index: 5, label: 'Insights', icon: LucideIcons.barChart2, selectedIndex: selectedIndex),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: const Icon(LucideIcons.calendar),
-            selectedIcon: Icon(LucideIcons.calendar,
-                color: theme.colorScheme.primary),
-            label: 'Schedule',
-          ),
-          NavigationDestination(
-            icon: const Icon(LucideIcons.messageSquare),
-            selectedIcon: Icon(LucideIcons.messageSquare,
-                color: theme.colorScheme.primary),
-            label: 'AI',
-          ),
-          NavigationDestination(
-            icon: const Icon(LucideIcons.repeat),
-            selectedIcon:
-                Icon(LucideIcons.repeat, color: theme.colorScheme.primary),
-            label: 'Habits',
-          ),
-          NavigationDestination(
-            icon: const Icon(LucideIcons.barChart2),
-            selectedIcon: Icon(LucideIcons.barChart2,
-                color: theme.colorScheme.primary),
-            label: 'Insights',
-          ),
-        ],
+        ),
       ),
       floatingActionButton: isAiTab
           ? null
@@ -203,6 +185,53 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
               child: Icon(LucideIcons.plus,
                   color: theme.colorScheme.onPrimary),
             ),
+    );
+  }
+
+  Widget _buildNavItem(
+    BuildContext context,
+    ThemeData theme, {
+    required int index,
+    required String label,
+    required IconData icon,
+    required int selectedIndex,
+  }) {
+    final isSelected = index == selectedIndex;
+    final color = isSelected 
+        ? theme.colorScheme.primary 
+        : theme.colorScheme.onSurfaceVariant;
+
+    return InkWell(
+      onTap: () {
+        ref.read(navigationProvider.notifier).set(index);
+      },
+      // Keep surface clean with no splash behaviors to maintain minimal look
+      hoverColor: Colors.transparent,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 72),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon, 
+              color: color, 
+              size: 24,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -39,6 +39,8 @@ class Task {
   final String category;
   final TaskStatus status;
   final String? recurrence; // 'daily', 'weekly', 'monthly', 'every monday', etc.
+  final int? focusSessions;
+  final int? timeSpentMinutes;
 
   Task({
     required this.id,
@@ -50,6 +52,8 @@ class Task {
     this.category = 'Inbox',
     this.status = TaskStatus.todo,
     this.recurrence,
+    this.focusSessions,
+    this.timeSpentMinutes,
   });
 
   Map<String, dynamic> toMap() {
@@ -63,6 +67,8 @@ class Task {
       'category': category,
       'status': status.index,
       'recurrence': recurrence,
+      'focusSessions': focusSessions,
+      'timeSpentMinutes': timeSpentMinutes,
     };
   }
 
@@ -92,6 +98,8 @@ class Task {
       status: TaskStatus
           .values[((map['status'] as num?)?.toInt() ?? 0).clamp(0, 2)],
       recurrence: map['recurrence']?.toString(),
+      focusSessions: map['focusSessions'] != null ? (map['focusSessions'] as num).toInt() : null,
+      timeSpentMinutes: map['timeSpentMinutes'] != null ? (map['timeSpentMinutes'] as num).toInt() : null,
     );
   }
 
@@ -105,6 +113,8 @@ class Task {
     String? category,
     TaskStatus? status,
     String? recurrence,
+    int? focusSessions,
+    int? timeSpentMinutes,
   }) {
     return Task(
       id: id ?? this.id,
@@ -116,6 +126,8 @@ class Task {
       category: category ?? this.category,
       status: status ?? this.status,
       recurrence: recurrence ?? this.recurrence,
+      focusSessions: focusSessions ?? this.focusSessions,
+      timeSpentMinutes: timeSpentMinutes ?? this.timeSpentMinutes,
     );
   }
 

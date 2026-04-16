@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:ai_productivity_assistant/features/tasks/presentation/task_provider.dart';
+import '../../chat/presentation/chat_provider.dart';
 import 'widgets/productivity_pulse_gauge.dart';
 
 class InsightsScreen extends ConsumerWidget {
@@ -443,49 +444,20 @@ class _CategoryBar extends StatelessWidget {
   }
 }
 
-class _AIRecommendationCard extends StatelessWidget {
+final aiProductivitySummaryProvider = FutureProvider.family<String, Map<String, dynamic>>((ref, metrics) async {
+  final aiService = ref.read(aiServiceProvider);
+  return await aiService.generateProductivitySummary(metrics);
+});
+
+class _AIRecommendationCard extends ConsumerWidget {
   final Map<String, dynamic> metrics;
   const _AIRecommendationCard({required this.metrics});
 
-  String _getInsightText() {
-    final double? totalHours = double.tryParse(
-      metrics['totalHours']?.toString() ?? '0',
-    );
-    final int growth = metrics['growth'] as int? ?? 0;
-    final categoryDist =
-        metrics['categoryDistribution'] as Map<String, double>? ?? {};
-
-    if (totalHours == null || totalHours == 0) {
-      return "Deep focus analysis requires more task data. Start completing more tasks to see your patterns.";
-    }
-
-    if (growth > 15) {
-      return "Excellent! Productivity is up by $growth% compared to last week. You're hitting your flow state more often.";
-    }
-
-    String? dominantCategory;
-    double maxPerc = 0;
-    categoryDist.forEach((k, v) {
-      if (v > maxPerc) {
-        maxPerc = v;
-        dominantCategory = k;
-      }
-    });
-
-    if (maxPerc > 0.6 && dominantCategory != null) {
-      return "Focus alert: $dominantCategory tasks take up ${(maxPerc * 100).toInt()}% of your capacity. Balance other priority areas.";
-    }
-
-    if (growth < -10) {
-      return "Productivity dipped by ${growth.abs()}%. Consider shifting high-intensity tasks to earlier in your day.";
-    }
-
-    return "Consistent performance detected. Your current task completion rate is stable and sustainable.";
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final summaryAsync = ref.watch(aiProductivitySummaryProvider(metrics));
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -496,6 +468,7 @@ class _AIRecommendationCard extends StatelessWidget {
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             LucideIcons.sparkles,
@@ -504,11 +477,35 @@ class _AIRecommendationCard extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              _getInsightText(),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                color: theme.colorScheme.onTertiaryContainer,
+            child: summaryAsync.when(
+              data: (text) => Text(
+                text,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.onTertiaryContainer,
+                ),
+              ),
+              loading: () => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Generating AI summary...',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onTertiaryContainer.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.tertiary),
+                  ),
+                ],
+              ),
+              error: (err, stack) => Text(
+                "Could not generate insights right now.",
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
               ),
             ),
           ),

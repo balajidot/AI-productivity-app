@@ -397,4 +397,50 @@ class AIService {
       _activeRequests.remove(cacheKey);
     }
   }
+
+  Future<String> generateProductivitySummary(Map<String, dynamic> metrics) async {
+    final cacheKey = 'summary_${metrics.hashCode}';
+
+    if (_cache.containsKey(cacheKey)) {
+      return _cache[cacheKey] as String;
+    }
+
+    if (_activeRequests.containsKey(cacheKey)) {
+      return await _activeRequests[cacheKey] as String;
+    }
+
+    final future = _withRetry(() async {
+      try {
+        final prompt = '''
+You are Obsidian Alpha, an elite productivity companion. Provide a concise, highly motivating 2-sentence summary based on this week's metrics.
+Metrics:
+- Total Focus Hours: ${metrics['totalHours'] ?? 0}
+- Efficiency Growth (compared to last week): ${metrics['growth'] ?? 0}%
+- Category Distribution: ${jsonEncode(metrics['categoryDistribution'] ?? {})}
+
+Rules:
+1. Two sentences maximum.
+2. If total hours is 0, softly push them to start engaging.
+3. Call out their dominant category playfully or point out high efficiency growth.
+4. Keep the tone sharp, professional, and slightly futuristic. No emojis.
+''';
+        final model = _getGeminiModel(AppConstants.geminiFlashModel);
+        final response = await model.generateContent([Content.text(prompt)]);
+        
+        final result = response.text?.trim() ?? "Productivity patterns look stable. Keep executing.";
+        _cache[cacheKey] = result;
+        return result;
+      } catch (e) {
+        debugPrint('AI Summary Error: $e');
+        return "Deep focus analysis requires more data. Start completing tasks to generate intelligence.";
+      }
+    });
+
+    _activeRequests[cacheKey] = future;
+    try {
+      return await future;
+    } finally {
+      _activeRequests.remove(cacheKey);
+    }
+  }
 }

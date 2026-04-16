@@ -84,6 +84,11 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
     state = state.copyWith(longBreakDuration: value);
     _save();
   }
+
+  void updateZenMode(bool value) {
+    state = state.copyWith(zenModeEnabled: value);
+    _save();
+  }
 }
 
 final navigationProvider =
