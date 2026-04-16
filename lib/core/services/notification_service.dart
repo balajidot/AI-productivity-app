@@ -21,8 +21,25 @@ class NotificationService {
     tz_data.initializeTimeZones();
     try {
       final dynamic locationResult = await FlutterTimezone.getLocalTimezone();
-      final String timeZoneName = locationResult.toString();
-      tz.setLocalLocation(tz.getLocation(timeZoneName));
+      if (locationResult != null) {
+        // Handle cases where the result is like "TimezoneInfo(Asia/Kolkata, ...)"
+        String cleanId = locationResult.toString();
+        if (cleanId.contains('(') && cleanId.contains(')')) {
+          final start = cleanId.indexOf('(') + 1;
+          final commaIndex = cleanId.indexOf(',');
+          final closingParenIndex = cleanId.indexOf(')');
+          final end = (commaIndex != -1 && commaIndex > start) 
+              ? commaIndex 
+              : closingParenIndex;
+          
+          if (end > start) {
+            cleanId = cleanId.substring(start, end).trim();
+          }
+        }
+        tz.setLocalLocation(tz.getLocation(cleanId));
+      } else {
+        tz.setLocalLocation(tz.getLocation('UTC'));
+      }
     } catch (e) {
       debugPrint('Timezone initialization failed, falling back to UTC: $e');
       tz.setLocalLocation(tz.getLocation('UTC'));

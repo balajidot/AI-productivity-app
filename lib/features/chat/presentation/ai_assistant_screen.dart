@@ -6,6 +6,10 @@ import 'chat_provider.dart';
 import '../domain/message_model.dart';
 import 'widgets/ai_action_card.dart';
 import '../../auth/presentation/auth_provider.dart';
+import 'goal_decomposer_sheet.dart';
+import '../../settings/presentation/settings_provider.dart';
+import '../../settings/presentation/paywall_screen.dart';
+import '../../../core/constants/secrets.dart';
 
 class AIAssistantScreen extends ConsumerStatefulWidget {
   const AIAssistantScreen({super.key});
@@ -105,6 +109,19 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
     final theme = Theme.of(context);
     final messages = ref.watch(chatProvider);
     final isLoading = ref.watch(aiLoadingProvider);
+
+    if (!Secrets.isConfigured) {
+      return Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(context, theme),
+              Expanded(child: _buildMissingConfigView(context, theme)),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -412,9 +429,31 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
           ),
           _buildSuggestionCard(
             theme,
+            'Decompose a goal',
+            'Break any big goal into tasks automatically',
+            LucideIcons.target,
+            onTap: () {
+              final isPremium = ref.read(isPremiumProvider);
+              if (isPremium) {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => const GoalDecomposerSheet(),
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PaywallScreen()),
+                );
+              }
+            },
+          ),
+          _buildSuggestionCard(
+            theme,
             'Help me prioritize',
             'Smart priority suggestions for your tasks',
-            LucideIcons.target,
+            LucideIcons.listOrdered,
           ),
         ],
       ),
@@ -425,12 +464,13 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
     ThemeData theme,
     String title,
     String subtitle,
-    IconData icon,
-  ) {
+    IconData icon, {
+    VoidCallback? onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GestureDetector(
-        onTap: () {
+        onTap: onTap ?? () {
           _controller.text = title;
           _sendMessage();
         },
@@ -471,6 +511,110 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMissingConfigView(BuildContext context, ThemeData theme) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                LucideIcons.brain,
+                size: 48,
+                color: theme.colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Configuration Required',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'To use the AI Assistant, you must provide your Gemini and Groq API keys.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            _buildStepCard(
+              theme,
+              'Option 1: Quick Run',
+              'Run the app using the IDE "Run" button or F5. It is already configured to read from your .env file.',
+              LucideIcons.play,
+            ),
+            const SizedBox(height: 12),
+            _buildStepCard(
+              theme,
+              'Option 2: Terminal',
+              'If running manually, use this exact command:\n\nflutter run --profile --dart-define-from-file=.env',
+              LucideIcons.terminal,
+            ),
+            const SizedBox(height: 40),
+            Text(
+              'Check secrets.dart and .env.example for details.',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepCard(
+    ThemeData theme,
+    String title,
+    String subtitle,
+    IconData icon,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: theme.colorScheme.primary, size: 20),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

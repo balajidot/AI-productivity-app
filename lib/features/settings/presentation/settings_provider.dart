@@ -89,6 +89,11 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
     state = state.copyWith(zenModeEnabled: value);
     _save();
   }
+
+  void updateHideCompletedTasks(bool value) {
+    state = state.copyWith(hideCompletedTasks: value);
+    _save();
+  }
 }
 
 final navigationProvider =
@@ -98,5 +103,11 @@ class NavigationNotifier extends Notifier<int> {
   @override
   int build() => 0;
 
+
   void set(int index) => state = index;
 }
+
+final isPremiumProvider = Provider<bool>((ref) {
+  // Mock premium state for now
+  return false; 
+});

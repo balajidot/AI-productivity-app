@@ -21,7 +21,7 @@ class FocusHubWidget extends ConsumerStatefulWidget {
 }
 
 class _FocusHubWidgetState extends ConsumerState<FocusHubWidget>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   late AnimationController _progressController;

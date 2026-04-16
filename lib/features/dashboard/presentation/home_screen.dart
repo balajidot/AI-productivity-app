@@ -433,6 +433,8 @@ class _TodaySection extends ConsumerWidget {
     final todayTasks = ref.watch(todayTasksProvider);
     final pendingTasks = todayTasks.where((t) => t.status != TaskStatus.completed && !t.isOverdue).toList();
     final completedTasks = todayTasks.where((t) => t.status == TaskStatus.completed).toList();
+    final settings = ref.watch(appSettingsProvider);
+    final hideCompleted = settings.hideCompletedTasks;
 
     return SliverMainAxisGroup(
       slivers: [
@@ -500,11 +502,28 @@ class _TodaySection extends ConsumerWidget {
                         letterSpacing: 1.0,
                       ),
                     ),
+                    const Spacer(),
+                    IconButton(
+                      icon: Icon(
+                        hideCompleted ? LucideIcons.eyeOff : LucideIcons.eye,
+                        size: 14,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                      ),
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        ref.read(appSettingsProvider.notifier).updateHideCompletedTasks(!hideCompleted);
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      visualDensity: VisualDensity.compact,
+                      tooltip: hideCompleted ? 'Show Completed' : 'Hide Completed',
+                    ),
                   ],
                 ),
               ),
             ),
-
+          
+          if (!hideCompleted)
           // Completed Tasks
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 24),

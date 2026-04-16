@@ -10,6 +10,7 @@ class AppSettings {
   final int shortBreakDuration; // minutes, default 5
   final int longBreakDuration;  // minutes, default 15
   final bool zenModeEnabled;
+  final bool hideCompletedTasks;
 
   const AppSettings({
     this.smartAnalysis = true,
@@ -23,6 +24,7 @@ class AppSettings {
     this.shortBreakDuration = 5,
     this.longBreakDuration = 15,
     this.zenModeEnabled = false,
+    this.hideCompletedTasks = false,
   });
 
   AppSettings copyWith({
@@ -37,6 +39,7 @@ class AppSettings {
     int? shortBreakDuration,
     int? longBreakDuration,
     bool? zenModeEnabled,
+    bool? hideCompletedTasks,
   }) {
     return AppSettings(
       smartAnalysis: smartAnalysis ?? this.smartAnalysis,
@@ -50,6 +53,7 @@ class AppSettings {
       shortBreakDuration: shortBreakDuration ?? this.shortBreakDuration,
       longBreakDuration: longBreakDuration ?? this.longBreakDuration,
       zenModeEnabled: zenModeEnabled ?? this.zenModeEnabled,
+      hideCompletedTasks: hideCompletedTasks ?? this.hideCompletedTasks,
     );
   }
 
@@ -66,6 +70,7 @@ class AppSettings {
       'shortBreakDuration': shortBreakDuration,
       'longBreakDuration': longBreakDuration,
       'zenModeEnabled': zenModeEnabled,
+      'hideCompletedTasks': hideCompletedTasks,
     };
   }
 
@@ -82,6 +87,7 @@ class AppSettings {
       shortBreakDuration: (map['shortBreakDuration'] as num?)?.toInt() ?? 5,
       longBreakDuration: (map['longBreakDuration'] as num?)?.toInt() ?? 15,
       zenModeEnabled: map['zenModeEnabled'] as bool? ?? false,
+      hideCompletedTasks: map['hideCompletedTasks'] as bool? ?? false,
     );
   }
 }

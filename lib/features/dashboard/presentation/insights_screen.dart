@@ -4,6 +4,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:ai_productivity_assistant/features/tasks/presentation/task_provider.dart';
 import '../../chat/presentation/chat_provider.dart';
+import '../../insights/presentation/weekly_report_screen.dart';
+import '../../settings/presentation/settings_provider.dart';
+import '../../settings/presentation/paywall_screen.dart';
 import 'widgets/productivity_pulse_gauge.dart';
 
 class InsightsScreen extends ConsumerWidget {
@@ -52,7 +55,58 @@ class _InsightsBody extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
+
+              // Weekly AI Report banner
+              GestureDetector(
+                onTap: () {
+                  final isPremium = ref.read(isPremiumProvider);
+                  if (isPremium) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WeeklyReportScreen()),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PaywallScreen()),
+                    );
+                  }
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 24),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(LucideIcons.sparkles, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Weekly AI Report',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Your personalised week in review',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(LucideIcons.chevronRight, color: Theme.of(context).colorScheme.primary),
+                    ],
+                  ),
+                ),
+              ),
 
               RepaintBoundary(child: _PulseGaugeSection(metrics: metrics)),
               const SizedBox(height: 40),

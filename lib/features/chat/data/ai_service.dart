@@ -442,4 +442,38 @@ Rules:
       _activeRequests.remove(cacheKey);
     }
   }
+
+  Future<Map<String, dynamic>> decomposeGoal(String goal, String timeframe) async {
+    final prompt = """
+Decompose this goal into a structured project plan:
+Goal: $goal
+Timeframe: $timeframe
+
+Generate a JSON response exactly like this:
+{
+  "milestones": ["Milestone 1", "Milestone 2"],
+  "tasks": [
+    {"title": "Subtask 1", "category": "Work", "priority": 2},
+    {"title": "Subtask 2", "category": "Work", "priority": 1}
+  ]
 }
+Rules:
+1. Max 3 milestones and 6 tasks.
+2. Priority: 0:Low, 1:Medium, 2:High.
+3. Keep it professional and high-performance.
+Return ONLY JSON.
+""";
+
+    return await _withRetry(() async {
+      try {
+        final model = _getGeminiModel(AppConstants.geminiFlashModel);
+        final response = await model.generateContent([Content.text(prompt)]);
+        return jsonDecode(AppUtils.extractJson(response.text ?? '{}'));
+      } catch (e) {
+        debugPrint('Decompose Goal Error: $e');
+        return {"milestones": [], "tasks": []};
+      }
+    });
+  }
+}
+

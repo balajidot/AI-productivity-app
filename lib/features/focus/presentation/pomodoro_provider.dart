@@ -6,6 +6,7 @@ import '../../tasks/domain/task.dart';
 import '../../tasks/presentation/task_provider.dart';
 import '../../chat/presentation/feedback_provider.dart';
 import '../../../core/utils/service_failure.dart';
+import '../../../core/providers/shared_prefs_provider.dart';
 
 enum PomodoroPhase { work, shortBreak, longBreak }
 
@@ -133,6 +134,12 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
 
     if (state.phase == PomodoroPhase.work) {
       final newCount = state.sessionCount + 1;
+      
+      // Feature: Weekly Tracking for AI Report
+      final prefs = ref.read(sharedPreferencesProvider);
+      final currentWeekly = prefs.getInt('weekly_pomodoro_count') ?? 0;
+      prefs.setInt('weekly_pomodoro_count', currentWeekly + 1);
+
       final isLongBreak = newCount % 4 == 0;
       final nextPhase =
           isLongBreak ? PomodoroPhase.longBreak : PomodoroPhase.shortBreak;

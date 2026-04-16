@@ -10,6 +10,7 @@ import '../../../core/widgets/empty_state.dart';
 
 import 'package:intl/intl.dart';
 import '../../auth/presentation/auth_provider.dart';
+import '../../settings/presentation/settings_provider.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
@@ -218,6 +219,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
       return _buildGroupedTaskView(theme, tasks, scrollController);
     }
 
+    final settings = ref.watch(appSettingsProvider);
+    final hideCompleted = settings.hideCompletedTasks;
+
     final pendingTasks = type == 'completed' ? [] : tasks.where((t) => t.status != TaskStatus.completed).toList();
     final completedTasks = type == 'completed' ? tasks : tasks.where((t) => t.status == TaskStatus.completed).toList();
 
@@ -266,33 +270,50 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
                       letterSpacing: 1.2,
                     ),
                   ),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(
+                      hideCompleted ? LucideIcons.eyeOff : LucideIcons.eye,
+                      size: 14,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                    ),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      ref.read(appSettingsProvider.notifier).updateHideCompletedTasks(!hideCompleted);
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
+                    tooltip: hideCompleted ? 'Show Completed' : 'Hide Completed',
+                  ),
                 ],
               ),
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final task = completedTasks[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: Opacity(
-                      opacity: 0.8,
-                      child: TaskCard(
-                        task: task,
-                        isOverdue: false,
-                        onTap: () => _showEditTaskSheet(context, task),
-                        searchQuery: searchQuery,
+          if (!hideCompleted)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final task = completedTasks[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Opacity(
+                        opacity: 0.8,
+                        child: TaskCard(
+                          task: task,
+                          isOverdue: false,
+                          onTap: () => _showEditTaskSheet(context, task),
+                          searchQuery: searchQuery,
+                        ),
                       ),
-                    ),
-                  );
-                },
-                childCount: completedTasks.length,
+                    );
+                  },
+                  childCount: completedTasks.length,
+                ),
               ),
             ),
-          ),
         ],
 
         if (type == 'completed')
@@ -329,6 +350,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
 
   Widget _buildGroupedTaskView(ThemeData theme, List<Task> tasks, ScrollController controller) {
     final searchQuery = ref.watch(searchQueryProvider);
+    final settings = ref.watch(appSettingsProvider);
+    final hideCompleted = settings.hideCompletedTasks;
+
     // Group tasks by date
     final groupedTasks = <String, List<Task>>{};
     for (var task in tasks) {
@@ -389,29 +413,50 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
         );
       }
 
-      // Add completed tasks for this date with header
       if (completedDateTasks.isNotEmpty) {
         slivers.add(
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(36, 12, 24, 4),
-              child: Text(
-                'DONE',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
-                  fontSize: 10,
-                ),
+              child: Row(
+                children: [
+                  Text(
+                    'DONE',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
+                      fontSize: 10,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(
+                      hideCompleted ? LucideIcons.eyeOff : LucideIcons.eye,
+                      size: 14,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                    ),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      ref.read(appSettingsProvider.notifier).updateHideCompletedTasks(!hideCompleted);
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
+                    tooltip: hideCompleted ? 'Show Completed' : 'Hide Completed',
+                  ),
+                ],
               ),
             ),
           ),
         );
+      }
 
-        slivers.add(
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            sliver: SliverList(
+        if (!hideCompleted && completedDateTasks.isNotEmpty) {
+          slivers.add(
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final task = completedDateTasks[index];

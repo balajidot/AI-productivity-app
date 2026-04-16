@@ -1,8 +1,8 @@
 class AppConstants {
   // AI Settings
   static const String autoModelId = 'auto-intelligence';
-  static const String geminiModel = 'gemini-1.5-pro-latest';
-  static const String geminiFlashModel = 'gemini-1.5-flash-latest';
+  static const String geminiModel = 'gemini-3.1-pro-preview';
+  static const String geminiFlashModel = 'gemini-3-flash-preview';
   static const String deepseekV3 = 'deepseek-chat';
   static const String groqPhi4 = 'phi-4';
 

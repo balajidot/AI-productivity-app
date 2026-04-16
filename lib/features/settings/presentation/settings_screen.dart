@@ -184,6 +184,27 @@ class SettingsScreen extends ConsumerWidget {
                                 );
                               },
                             ),
+                            _buildSettingItem(
+                              context,
+                              icon: LucideIcons.eyeOff,
+                              title: 'Hide Completed Tasks',
+                              subtitle: 'Clean up your daily flow',
+                              trailing: Switch(
+                                value: settings.hideCompletedTasks,
+                                onChanged: (value) {
+                                  HapticFeedback.lightImpact();
+                                  settingsNotifier.updateHideCompletedTasks(
+                                    value,
+                                  );
+                                },
+                                activeTrackColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.5),
+                                activeThumbColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                              ),
+                            ),
                           ],
                         );
                       },
