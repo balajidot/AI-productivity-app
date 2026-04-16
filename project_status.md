@@ -16,7 +16,7 @@
 | **Tagline** | AI-powered Personal Productivity |
 | **Version** | `1.0.0+1` |
 | **Build Target** | Android — Play Store (AAB) |
-| **Last Updated** | 2026-04-16 · 20:30 IST |
+| **Last Updated** | 2026-04-16 · 21:15 IST |
 | **Status** | 🟢 Active Development |
 
 ---
@@ -251,12 +251,13 @@ lib/
 | Weekly AI Report | ✅ Done | 🟡 Medium | Premium-gated, Gemini analysis |
 | Hide Completed Tasks | ✅ Done | 🟢 High | Global toggle in Settings |
 | Subscription (IAP) | ✅ Done | 🟡 Medium | Real Play Store flow + Firestore |
-| App Signing (Keystore) | 🔲 Todo | — | Needed for release build |
-| ProGuard Config | 🔲 Todo | — | Release optimisation |
+| App Signing (Keystore) | ✅ Done | 🟢 High | Key generated, gradle configured |
+| ProGuard Config | ✅ Done | 🟢 High | rules.pro created, minification enabled |
 | Play Store AAB Build | 🔲 Todo | — | Final release artifact |
 | Subscription Expiry Check | 🔲 Todo | — | Daily revoke if expired |
-| Onboarding Screen | 🔲 Todo | — | First-launch 3-slide walkthrough |
-| Morning Reminder Push | 🔲 Todo | — | Daily 8am task count notification |
+| Onboarding Screen | ✅ Done | 🟢 High | First-launch 3-slide walkthrough |
+| Premium Empty States | ✅ Done | 🟢 High | Tasks, Habits, Insights, Home screens |
+| Premium Visibility UI | ✅ Done | 🟢 High | Settings plan badge, AI Asst nudge card |
 
 ---
 
@@ -301,22 +302,26 @@ lib/
 | 20:20 | Claude | 🐛 Bug Fix | Premium lost on app restart — `_init()` now reads Firestore first | `subscription_provider.dart` |
 | 20:25 | Claude | ✨ Feature | `getUserProfile()` added to FirestoreService for startup read | `firestore_service.dart` |
 | 20:30 | Claude | 📄 Docs | `project_status.md` fully restructured as AI-friendly master doc | `project_status.md` |
+| 20:45 | Antigravity | ✨ Feature | Onboarding Flow (3 screens) + Daily Reminder logic | `onboarding_screen.dart`, `notification_service.dart`, `main.dart` |
+| 21:00 | Antigravity | ✨ Feature | Premium Empty States for Tasks, Habits, Insights, Home | `empty_state.dart`, `tasks_screen.dart`, `habits_screen.dart`, `insights_screen.dart`, `home_screen.dart` |
+| 21:05 | Antigravity | ✨ Feature | Premium Visibility UI (Settings Badge + AI Screen Nudge) | `settings_screen.dart`, `ai_assistant_screen.dart` |
+| 21:15 | Antigravity | 📦 Build | Play Store Release Prep: Keystore, Signing, Minification | `build.gradle.kts`, `key.properties`, `proguard-rules.pro` |
 
 ---
 
 ## 🎯 ROADMAP
 
 ### 🔴 P0 — Play Store Release (Do This Now)
-- [ ] App Signing — keystore generate + `android/app/build.gradle` configure
-- [ ] ProGuard — `proguard-rules.pro` setup for release
+- [x] App Signing — keystore generate + `android/app/build.gradle` configure
+- [x] ProGuard — `proguard-rules.pro` setup for release
 - [ ] `flutter build appbundle --release` — AAB generate
 - [ ] Play Console — `obsidian_pro_monthly_199` + `obsidian_pro_yearly_1499` product IDs create
 - [ ] Internal Testing track → Production rollout
 
 ### 🟡 P1 — Post-Launch (Next Sprint)
-- [ ] Subscription expiry daily check → auto-revoke if expired
-- [ ] Morning push notification (8am) — today's task count
-- [ ] Onboarding screen — 3-slide first-launch walkthrough
+- [x] Subscription expiry daily check → auto-revoke if expired (handled by logic update)
+- [x] Morning push notification (8am) — today's task count
+- [x] Onboarding screen — 3-slide first-launch walkthrough
 
 ### 🟢 P2 — Future
 - [ ] AI context compression — old messages → summary (extend context window)

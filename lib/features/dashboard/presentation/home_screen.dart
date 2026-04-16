@@ -654,45 +654,37 @@ class _EmptyTodayState extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.1)),
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.05),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              LucideIcons.sunrise,
-              color: theme.colorScheme.primary.withValues(alpha: 0.4),
-              size: 40,
-            ),
+          Icon(
+            LucideIcons.sun,
+            color: Colors.amber.withValues(alpha: 0.5),
+            size: 32,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Text(
-            'Your flow is clear',
-            style: theme.textTheme.titleLarge?.copyWith(
+            'Nothing scheduled today',
+            style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Enjoy your peace of mind or add a new goal to start your productivity journey today.',
+            'Enjoy the calm or add something meaningful.',
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
+            style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
-              height: 1.5,
             ),
           ),
         ],
       ),
     );
-
   }
 }
 

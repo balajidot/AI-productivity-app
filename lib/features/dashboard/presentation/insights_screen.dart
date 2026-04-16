@@ -8,6 +8,7 @@ import '../../insights/presentation/weekly_report_screen.dart';
 import '../../settings/presentation/settings_provider.dart';
 import '../../settings/presentation/paywall_screen.dart';
 import 'widgets/productivity_pulse_gauge.dart';
+import '../../../core/widgets/empty_state.dart';
 
 class InsightsScreen extends ConsumerWidget {
   const InsightsScreen({super.key});
@@ -111,18 +112,31 @@ class _InsightsBody extends ConsumerWidget {
               RepaintBoundary(child: _PulseGaugeSection(metrics: metrics)),
               const SizedBox(height: 40),
 
-              _MetricsGrid(metrics: metrics),
-              const SizedBox(height: 32),
-
-              RepaintBoundary(child: _ChartSection(metrics: metrics)),
-              const SizedBox(height: 32),
-
-              if ((metrics['totalHours'] ?? '0.0') != '0.0') ...[
-                _AIRecommendationCard(metrics: metrics),
+              if ((metrics['completedTasks'] ?? 0) == 0) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: EmptyStateWidget(
+                    icon: LucideIcons.barChart2,
+                    iconSize: 64,
+                    iconColor: theme.colorScheme.tertiary.withValues(alpha: 0.3),
+                    title: 'No data yet',
+                    description: 'Complete tasks to start seeing your productivity patterns.',
+                  ),
+                ),
+              ] else ...[
+                _MetricsGrid(metrics: metrics),
                 const SizedBox(height: 32),
-              ],
 
-              const _CategoryDistributionSection(),
+                RepaintBoundary(child: _ChartSection(metrics: metrics)),
+                const SizedBox(height: 32),
+
+                if ((metrics['totalHours'] ?? '0.0') != '0.0') ...[
+                  _AIRecommendationCard(metrics: metrics),
+                  const SizedBox(height: 32),
+                ],
+
+                const _CategoryDistributionSection(),
+              ],
               const SizedBox(height: 40),
             ]),
           ),

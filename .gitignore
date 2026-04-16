@@ -79,6 +79,7 @@ service-account.json
 # Environment & Secrets
 .env*
 lib/core/constants/secrets.dart
+android/key.properties
 
 # Node.js (for MCP bridge)
 node_modules/

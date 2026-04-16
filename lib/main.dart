@@ -8,6 +8,7 @@ import 'core/services/notification_service.dart';
 import 'core/providers/providers.dart';
 import 'firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'features/onboarding/presentation/onboarding_screen.dart';
 
 
 Future<bool> initializeFirebase() async {
@@ -144,7 +145,14 @@ class _MyAppState extends State<MyApp> {
           home: authState.when(
             data: (user) {
               if (user != null) {
-                return const MainNavigation();
+                final prefs = ref.watch(sharedPreferencesProvider);
+                final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+                
+                if (onboardingComplete) {
+                  return const MainNavigation();
+                } else {
+                  return const OnboardingScreen();
+                }
               }
               return const LoginScreen();
             },

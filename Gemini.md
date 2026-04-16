@@ -13,6 +13,9 @@ Example response style:
 
 When the developer writes in English, respond in English. Match their language automatically.
 
+**Documentation Paths:**
+Implementation Plan மற்றும் Walkthrough-க்கான முழுப் பாதையை (Full Path) எப்போதும் சுலபமாக copy-paste செய்யும் வகையில் (plain text) வழங்க வேண்டும்.
+
 ---
 
 ## Project Identity

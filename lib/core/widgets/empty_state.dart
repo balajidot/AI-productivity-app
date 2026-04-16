@@ -6,6 +6,8 @@ class EmptyStateWidget extends StatelessWidget {
   final String description;
   final String? imagePath;
   final IconData? icon;
+  final double iconSize;
+  final Color? iconColor;
   final VoidCallback? onActionPressed;
   final String? actionLabel;
 
@@ -15,6 +17,8 @@ class EmptyStateWidget extends StatelessWidget {
     required this.description,
     this.imagePath,
     this.icon,
+    this.iconSize = 80,
+    this.iconColor,
     this.onActionPressed,
     this.actionLabel,
   });
@@ -39,8 +43,8 @@ class EmptyStateWidget extends StatelessWidget {
             else
               Icon(
                 icon ?? LucideIcons.clipboardSignature,
-                size: 80,
-                color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                size: iconSize,
+                color: iconColor ?? theme.colorScheme.primary.withValues(alpha: 0.15),
               ),
             const SizedBox(height: 32),
             Text(

@@ -110,11 +110,11 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
                 controller: _tabController,
                 physics: const BouncingScrollPhysics(),
                 children: [
-                  _buildTaskTab(theme, todayTasks, 'today', 'No tasks for today!'),
-                  _buildTaskTab(theme, tomorrowTasks, 'tomorrow', 'A fresh start tomorrow.'),
-                  _buildTaskTab(theme, upcomingTasks, 'upcoming', 'No upcoming tasks.'),
-                  _buildTaskTab(theme, overdueTasks, 'overdue', 'No overdue tasks.', isOverdue: true),
-                  _buildTaskTab(theme, completedTasks, 'completed', 'Completed tasks show up here.'),
+                  _buildTaskTab(theme, todayTasks, 'today', 'Tap + to add your first task'),
+                  _buildTaskTab(theme, tomorrowTasks, 'tomorrow', 'Plan ahead and stay focused.'),
+                  _buildTaskTab(theme, upcomingTasks, 'upcoming', 'Your future self will thank you.'),
+                  _buildTaskTab(theme, overdueTasks, 'overdue', 'No overdue tasks. Great job!', isOverdue: true),
+                  _buildTaskTab(theme, completedTasks, 'completed', 'Your wins will appear here.'),
                 ],
               ),
             ),
@@ -205,11 +205,11 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
     if (tasks.isEmpty && !tasksState.isLoading) {
       return Center(
         child: EmptyStateWidget(
-          title: isOverdue ? 'All Caught Up!' : 'Focus Time',
+          title: isOverdue ? (type == 'completed' ? 'Keep Winning' : 'All Caught Up!') : 'No tasks yet',
           description: emptyMsg,
-          icon: isOverdue ? LucideIcons.checkCircle2 : LucideIcons.calendarDays,
-          onActionPressed: _showAddTaskModal,
-          actionLabel: 'New Task',
+          icon: isOverdue ? LucideIcons.checkCircle2 : LucideIcons.clipboardList,
+          iconSize: 64,
+          iconColor: theme.colorScheme.primary.withValues(alpha: 0.3),
         ),
       );
     }
@@ -756,12 +756,4 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
     );
   }
 
-  void _showAddTaskModal() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => const QuickAddTaskSheet(),
-    );
-  }
 }

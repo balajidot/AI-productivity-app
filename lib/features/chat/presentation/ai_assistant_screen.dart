@@ -455,6 +455,20 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
             'Smart priority suggestions for your tasks',
             LucideIcons.listOrdered,
           ),
+          if (!ref.watch(isPremiumProvider))
+            _buildSuggestionCard(
+              theme,
+              'Unlock Pro Features',
+              'Weekly AI Reports · Goal Decomposer · Pro Model',
+              LucideIcons.crown,
+              iconColor: Colors.amber,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PaywallScreen()),
+                );
+              },
+            ),
         ],
       ),
     );
@@ -466,6 +480,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
     String subtitle,
     IconData icon, {
     VoidCallback? onTap,
+    Color? iconColor,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -482,7 +497,11 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Icon(icon, color: theme.colorScheme.primary, size: 20),
+              Icon(
+                icon,
+                color: iconColor ?? theme.colorScheme.primary,
+                size: 20,
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(

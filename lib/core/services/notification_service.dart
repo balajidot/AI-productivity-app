@@ -154,4 +154,48 @@ class NotificationService {
   Future<void> cancelAllNotifications() async {
     await _notificationsPlugin.cancelAll();
   }
+
+  Future<void> scheduleDailyReminder({
+    required int hour,
+    required int minute,
+  }) async {
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+
+    // If the time has already passed today, schedule for tomorrow
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    try {
+      debugPrint('Scheduling daily reminder: at ${scheduledDate.hour}:${scheduledDate.minute}');
+      await _notificationsPlugin.zonedSchedule(
+        id: 0, // Fixed ID for daily reminder
+        title: 'Good Morning!',
+        body: 'Your daily productivity brief is ready. Let\'s conquer the day!',
+        scheduledDate: scheduledDate,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'daily_briefing',
+            'Daily Briefing',
+            channelDescription: 'Notifications for your daily morning summary',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (e) {
+      debugPrint('Error scheduling daily reminder: $e');
+    }
+  }
 }

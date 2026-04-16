@@ -77,10 +77,11 @@ class _HabitsBody extends ConsumerWidget {
           SliverFillRemaining(
             hasScrollBody: false,
             child: EmptyStateWidget(
-              icon: LucideIcons.repeat,
-              title: 'No Habits Yet',
-              description:
-                  'Build powerful daily systems. Tap + to add your first habit.',
+              icon: LucideIcons.flame,
+              iconSize: 64,
+              iconColor: Colors.amber.withValues(alpha: 0.3),
+              title: 'No habits yet',
+              description: 'Build streaks, build yourself. Tap + to start.',
             ),
           ),
       ],
