@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/app_settings.dart';
 import '../../../core/providers/shared_prefs_provider.dart';
+import 'subscription_provider.dart';
 
 final appSettingsProvider =
     NotifierProvider<AppSettingsNotifier, AppSettings>(AppSettingsNotifier.new);
@@ -108,6 +109,6 @@ class NavigationNotifier extends Notifier<int> {
 }
 
 final isPremiumProvider = Provider<bool>((ref) {
-  // Mock premium state for now
-  return false; 
+  final subState = ref.watch(subscriptionProvider);
+  return subState.isPro; 
 });

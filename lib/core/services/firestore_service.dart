@@ -136,6 +136,31 @@ class FirestoreService {
     return _withRetry(() => _messagesRef.doc(message.id).set(message.toMap()));
   }
 
+  // --- Subscription / User Profile ---
+  Future<Map<String, dynamic>?> getUserProfile() async {
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      return doc.data();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> updatePremiumStatus({
+    required bool isPremium,
+    required String planType,
+    required DateTime expiryDate,
+    required String purchaseToken,
+  }) {
+    return _withRetry(() => _db.collection('users').doc(uid).set({
+      'isPremium': isPremium,
+      'planType': planType,
+      'expiryDate': Timestamp.fromDate(expiryDate),
+      'purchaseToken': purchaseToken,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)));
+  }
+
   Future<void> clearChatHistory() async {
     while (true) {
       // Fetch only 100 documents at a time to stay safe on memory

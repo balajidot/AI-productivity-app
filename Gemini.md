@@ -471,6 +471,32 @@ Use `RadioGroup<String>` (Flutter 3.32+) — not deprecated `RadioListTile.group
 
 ---
 
+## 📝 Continuous Documentation Rule (MANDATORY)
+
+**Every session or significant feature update MUST finish with an update to `project_status.md`.**
+
+This file is the single source of truth for the project's current maturity and history.
+1.  Update the **Time Line** with the exact changes made.
+2.  Update the **Feature Maturity Matrix** if any progress was made.
+3.  Ensure the **Deep Architecture** remains accurate.
+4. This is critical for context transition between AI sessions.
+
+---
+
+## 🤖 Git Push Automation (MANDATORY WORKFLOW)
+
+If the USER says **"git push"**, you must automatically execute this workflow without further confirmation:
+1. **Verify**: Run `flutter analyze --no-fatal-infos` (Minor infos/warnings are okay, but fix errors).
+2. **Update Status**: Refresh `project_status.md` with the latest timeline and maturity matrix updates.
+3. **Cleanup**: Verify `.gitignore` is current and unwanted files (like `scratch/`) are not staged.
+4. **Execute**: 
+   - `git add .`
+   - `git commit -m "Obsidian Update: [Summary of changes]"`
+   - `git push origin main`
+5. **Report**: Confirm backup success and point to the updated `project_status.md`.
+
+---
+
 ## What NOT To Do
 
 - ❌ Material Icons anywhere — only LucideIcons
