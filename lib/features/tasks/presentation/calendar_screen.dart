@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'widgets/quick_add_task_sheet.dart';
 import 'task_provider.dart';
 import '../domain/task.dart';
@@ -62,13 +61,10 @@ class CalendarScreen extends ConsumerWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Today button
               _buildTodayButton(theme, ref),
               const SizedBox(width: 8),
-              // Week/Month toggle
               _buildToggleViewButton(theme, ref, format),
               const SizedBox(width: 8),
-              // Add event
               _buildAddEventButton(context, ref),
             ],
           ),
@@ -107,7 +103,6 @@ class CalendarScreen extends ConsumerWidget {
         onFormatChanged: (format) {
           ref.read(calendarFormatProvider.notifier).set(format == CalendarFormat.month ? 'month' : 'week');
         },
-        // Task markers
         eventLoader: (day) {
           final normalizedDay = DateTime(day.year, day.month, day.day);
           final count = taskDateCounts[normalizedDay] ?? 0;
@@ -180,7 +175,7 @@ class CalendarScreen extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded( // Added Expanded to fix the overflow shown in screenshot
+          Expanded(
             child: Text(
               dayLabel,
               style: theme.textTheme.titleMedium?.copyWith(
@@ -241,8 +236,8 @@ class CalendarScreen extends ConsumerWidget {
       children: [
         if (!isLast)
           Positioned(
-            left: 70 + 5, // 70 (time width) + 5 (center of 12px circle) + slight adjustment for 2px line
-            top: 22, // 10 (margin top) + 12 (circle height)
+            left: 70 + 5,
+            top: 22,
             bottom: 0,
             child: Container(
               width: 2,
@@ -258,9 +253,8 @@ class CalendarScreen extends ConsumerWidget {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   timeLabel,
-                  style: GoogleFonts.inter(
+                  style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
-                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
                   semanticsLabel: 'Time: $timeLabel',
@@ -315,7 +309,7 @@ class CalendarScreen extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                _getPriorityLabel(task.priority).toUpperCase(),
+                                task.priorityLabel.toUpperCase(),
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: priorityColor,
                                   fontWeight: FontWeight.bold,
@@ -342,14 +336,6 @@ class CalendarScreen extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  String _getPriorityLabel(TaskPriority priority) {
-    switch (priority) {
-      case TaskPriority.high: return 'High';
-      case TaskPriority.medium: return 'Medium';
-      case TaskPriority.low: return 'Low';
-    }
   }
 
   Widget _buildTodayButton(ThemeData theme, WidgetRef ref) {
@@ -424,10 +410,8 @@ class CalendarScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               Text(
                 'No tasks scheduled',
-                style: GoogleFonts.outfit(
-                  fontSize: 17,
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),

@@ -446,34 +446,13 @@ class TaskNotifier extends Notifier<TaskPaginationState> {
       return DateTime(from.year, from.month + 1, safeDay);
     } else if (normalized.startsWith('every ')) {
       final dayName = normalized.replaceFirst('every ', '').trim();
-      final targetDay = _dayNameToInt(dayName);
+      final targetDay = AppUtils.dayNameToInt(dayName);
       int daysAhead = targetDay - from.weekday;
       if (daysAhead <= 0) daysAhead += 7;
       return from.add(Duration(days: daysAhead));
     }
 
     return from.add(const Duration(days: 1)); // Default fallback
-  }
-
-  int _dayNameToInt(String day) {
-    switch (day) {
-      case 'monday':
-        return DateTime.monday;
-      case 'tuesday':
-        return DateTime.tuesday;
-      case 'wednesday':
-        return DateTime.wednesday;
-      case 'thursday':
-        return DateTime.thursday;
-      case 'friday':
-        return DateTime.friday;
-      case 'saturday':
-        return DateTime.saturday;
-      case 'sunday':
-        return DateTime.sunday;
-      default:
-        return DateTime.monday;
-    }
   }
 
   Future<void> deleteTask(String id) async {

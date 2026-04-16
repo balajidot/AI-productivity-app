@@ -7,6 +7,22 @@ import 'habit_provider.dart';
 import '../../../core/utils/app_utils.dart';
 import '../../../core/widgets/empty_state.dart';
 
+// Single source of truth for habit icons — used by _HabitTile and AddHabitSheet
+final kHabitIcons = <String, IconData>{
+  'star': LucideIcons.star,
+  'book': LucideIcons.bookOpen,
+  'run': LucideIcons.activity,
+  'water': LucideIcons.droplet,
+  'sleep': LucideIcons.moon,
+  'meditate': LucideIcons.brain,
+  'workout': LucideIcons.activity,
+  'write': LucideIcons.edit3,
+  'music': LucideIcons.headphones,
+  'code': LucideIcons.terminal,
+  'eat': LucideIcons.utensils,
+  'walk': LucideIcons.navigation,
+};
+
 class HabitsScreen extends ConsumerWidget {
   const HabitsScreen({super.key});
 
@@ -307,23 +323,7 @@ class _HabitTile extends ConsumerWidget {
     );
   }
 
-  IconData _iconFromName(String name) {
-    final map = {
-      'star': LucideIcons.star,
-      'book': LucideIcons.bookOpen,
-      'run': LucideIcons.activity,
-      'water': LucideIcons.droplet,
-      'sleep': LucideIcons.moon,
-      'meditate': LucideIcons.brain,
-      'workout': LucideIcons.activity,
-      'write': LucideIcons.edit3,
-      'music': LucideIcons.headphones,
-      'code': LucideIcons.terminal,
-      'eat': LucideIcons.utensils,
-      'walk': LucideIcons.navigation,
-    };
-    return map[name] ?? LucideIcons.star;
-  }
+  IconData _iconFromName(String name) => kHabitIcons[name] ?? LucideIcons.star;
 }
 
 class _WeekStrip extends StatelessWidget {
@@ -430,20 +430,8 @@ class _AddHabitSheetState extends ConsumerState<AddHabitSheet> {
   String _selectedIcon = 'star';
   bool _submitting = false;
 
-  static final _icons = {
-    'star': LucideIcons.star,
-    'book': LucideIcons.bookOpen,
-    'run': LucideIcons.activity,
-    'water': LucideIcons.droplet,
-    'sleep': LucideIcons.moon,
-    'meditate': LucideIcons.brain,
-    'workout': LucideIcons.activity,
-    'write': LucideIcons.edit3,
-    'music': LucideIcons.headphones,
-    'code': LucideIcons.terminal,
-    'eat': LucideIcons.utensils,
-    'walk': LucideIcons.navigation,
-  };
+  // Reuses the shared kHabitIcons map defined at the top of this file
+  static Map<String, IconData> get _icons => kHabitIcons;
 
   @override
   void dispose() {

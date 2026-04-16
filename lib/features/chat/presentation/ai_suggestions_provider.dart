@@ -33,7 +33,6 @@ class AISuggestionNotifier extends Notifier<List<AISuggestion>> {
 
   @override
   List<AISuggestion> build() {
-    // Re-run whenever tasks or habits change
     final overdue = ref.watch(overdueTasksProvider);
     final habits = ref.watch(habitsProvider);
 
@@ -96,16 +95,23 @@ class AISuggestionNotifier extends Notifier<List<AISuggestion>> {
     // Filter out already-dismissed suggestions
     final visible = newSuggestions.where((s) => !_dismissedIds.contains(s.id)).toList();
 
-    // Schedule auto-dismiss for any suggestion not already tracked
-    for (final s in visible) {
-      if (!_dismissedIds.contains(s.id)) {
+    // Schedule auto-dismiss via microtask — avoids side-effects inside build()
+    Future.microtask(() => _scheduleAutoDismiss(visible));
+
+    return visible;
+  }
+
+  // Auto-dismiss scheduling extracted out of build() to avoid Riverpod anti-pattern
+  void _scheduleAutoDismiss(List<AISuggestion> suggestions) {
+    for (final s in suggestions) {
+      final pendingKey = '__sched_${s.id}';
+      if (!_dismissedIds.contains(pendingKey)) {
+        _dismissedIds.add(pendingKey);
         Future.delayed(const Duration(seconds: 30), () {
           dismissSuggestion(s.id);
         });
       }
     }
-
-    return visible;
   }
 
   void dismissSuggestion(String id) {

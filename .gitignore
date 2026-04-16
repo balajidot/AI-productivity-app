@@ -11,6 +11,10 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+.claude/
+/*.png
+/*.jpg
+/*.jpeg
 
 # IntelliJ related
 *.iml
@@ -21,7 +25,7 @@ migrate_working_dir/
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
-#.vscode/
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -69,7 +73,7 @@ service-account.json
 
 # Environment & Secrets
 .env*
-lib/config/secrets.dart
+lib/core/constants/secrets.dart
 
 # Node.js (for MCP bridge)
 node_modules/

@@ -651,4 +651,3 @@ class _EmptyTodayState extends StatelessWidget {
   }
 }
 
-// Removed _maybeAnimate utility as performance-first is now default.

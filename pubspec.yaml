@@ -42,13 +42,8 @@ dependencies:
   google_fonts: ^8.0.2
   table_calendar: ^3.2.0
   fl_chart: ^1.2.0
-  path_provider: ^2.1.5
   intl: ^0.20.2
-  shimmer: ^3.0.0
-  sqflite: ^2.4.2
-  path: ^1.9.1
   shared_preferences: ^2.5.5
-  device_info_plus: ^11.1.0
   flutter_local_notifications: ^21.0.0
   timezone: ^0.11.0
   http: ^1.6.0
@@ -56,11 +51,7 @@ dependencies:
   firebase_auth: ^5.5.0
   cloud_firestore: ^5.6.3
   google_sign_in: ^6.2.2
-  markdown: ^7.2.2
   flutter_timezone: ^5.0.2
-  go_router: ^17.2.1
-  dio: ^5.9.2
-  flutter_dotenv: ^6.0.0
 
 dev_dependencies:
   flutter_test:

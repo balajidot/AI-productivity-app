@@ -53,24 +53,20 @@ class _InsightsBody extends ConsumerWidget {
               ),
               const SizedBox(height: 40),
 
-              // Gauge Section
               RepaintBoundary(child: _PulseGaugeSection(metrics: metrics)),
               const SizedBox(height: 40),
 
               _MetricsGrid(metrics: metrics),
               const SizedBox(height: 32),
 
-              // Chart Section
               RepaintBoundary(child: _ChartSection(metrics: metrics)),
               const SizedBox(height: 32),
 
-              // AI Recommendation (Hide if no data)
               if ((metrics['totalHours'] ?? '0.0') != '0.0') ...[
                 _AIRecommendationCard(metrics: metrics),
                 const SizedBox(height: 32),
               ],
 
-              // Category Distribution (Hide if empty)
               const _CategoryDistributionSection(),
               const SizedBox(height: 40),
             ]),
@@ -205,10 +201,7 @@ class _ChartSection extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
@@ -332,13 +325,13 @@ class _CategoryDistributionSection extends ConsumerWidget {
             case 'Health':
               col = Colors.green;
               break;
+            case 'Study':
+              col = Colors.indigo;
+              break;
             case 'Finance':
               col = Colors.amber;
               break;
-            case 'Growth':
-              col = Colors.indigo;
-              break;
-            default:
+            default: // Inbox and any future categories
               col = theme.colorScheme.tertiary;
           }
           return _CategoryBar(label: e.key, perc: e.value, color: col);

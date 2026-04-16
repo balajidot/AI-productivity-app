@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../domain/task.dart';
+import '../../../core/utils/app_utils.dart';
 
 
 class ParsedTaskData {
@@ -262,37 +263,16 @@ class NaturalLanguageParser {
   }
 
   static DateTime _getNextWeekday(String dayName, DateTime from) {
-    final targetDay = _dayNameToInt(dayName);
+    final targetDay = AppUtils.dayNameToInt(dayName);
     int daysAhead = targetDay - from.weekday;
     if (daysAhead <= 0) daysAhead += 7;
     return from.add(Duration(days: daysAhead));
   }
 
   static DateTime _getThisWeekday(String dayName, DateTime from) {
-    final targetDay = _dayNameToInt(dayName);
+    final targetDay = AppUtils.dayNameToInt(dayName);
     int daysAhead = targetDay - from.weekday;
     if (daysAhead < 0) daysAhead += 7;
     return from.add(Duration(days: daysAhead));
-  }
-
-  static int _dayNameToInt(String day) {
-    switch (day) {
-      case 'monday':
-        return DateTime.monday;
-      case 'tuesday':
-        return DateTime.tuesday;
-      case 'wednesday':
-        return DateTime.wednesday;
-      case 'thursday':
-        return DateTime.thursday;
-      case 'friday':
-        return DateTime.friday;
-      case 'saturday':
-        return DateTime.saturday;
-      case 'sunday':
-        return DateTime.sunday;
-      default:
-        return DateTime.monday;
-    }
   }
 }

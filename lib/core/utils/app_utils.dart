@@ -28,4 +28,18 @@ class AppUtils {
   static String formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
+
+  /// Converts a lowercase weekday name to DateTime weekday int (Monday=1 … Sunday=7)
+  static int dayNameToInt(String day) {
+    switch (day) {
+      case 'monday':    return DateTime.monday;
+      case 'tuesday':   return DateTime.tuesday;
+      case 'wednesday': return DateTime.wednesday;
+      case 'thursday':  return DateTime.thursday;
+      case 'friday':    return DateTime.friday;
+      case 'saturday':  return DateTime.saturday;
+      case 'sunday':    return DateTime.sunday;
+      default:          return DateTime.monday;
+    }
+  }
 }

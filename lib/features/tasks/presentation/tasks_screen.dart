@@ -9,6 +9,7 @@ import 'widgets/task_card.dart';
 import '../../../core/widgets/empty_state.dart';
 
 import 'package:intl/intl.dart';
+import '../../auth/presentation/auth_provider.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
@@ -612,38 +613,44 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
           // Avatar (right)
           Padding(
             padding: const EdgeInsets.only(right: 8, left: 4),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary,
+            child: Consumer(
+            builder: (context, ref, _) {
+              final name = ref.watch(userNameProvider);
+              final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+            return Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary,
                     theme.colorScheme.tertiary,
                   ],
                   begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Text(
-                  'B',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+                end: Alignment.bottomRight,
             ),
+            shape: BoxShape.circle,
+            boxShadow: [
+                BoxShadow(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                  ),
+              ],
+            ),
+            child: Center(
+            child: Text(
+              initial,
+                style: const TextStyle(
+                    color: Colors.white,
+                      fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
           ),
         ],
       ),
