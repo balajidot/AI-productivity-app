@@ -220,7 +220,7 @@ class _ChartSection extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           SizedBox(
-            height: 160,
+            height: 140,
             child: RepaintBoundary(
               child: LineChart(
                 duration: const Duration(milliseconds: 400),
@@ -228,6 +228,8 @@ class _ChartSection extends StatelessWidget {
                   gridData: const FlGridData(show: false),
                   titlesData: const FlTitlesData(show: false),
                   borderData: FlBorderData(show: false),
+                  minY: 0,
+                  maxY: (spots.isEmpty ? 5.0 : spots.map((s) => s.y).reduce((a, b) => a > b ? a : b) + 2.0).clamp(5.0, double.infinity),
                   lineBarsData: [
                     LineChartBarData(
                       spots: spots,
@@ -333,7 +335,7 @@ class _CategoryDistributionSection extends ConsumerWidget {
               col = Colors.amber;
               break;
             default: // Inbox and any future categories
-              col = theme.colorScheme.tertiary;
+              col = theme.colorScheme.outline;
           }
           return _CategoryBar(label: e.key, perc: e.value, color: col);
         }),
@@ -461,10 +463,10 @@ class _AIRecommendationCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.4),
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: theme.colorScheme.tertiary.withValues(alpha: 0.1),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -482,7 +484,7 @@ class _AIRecommendationCard extends ConsumerWidget {
                 text,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onTertiaryContainer,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               loading: () => Column(
@@ -491,7 +493,7 @@ class _AIRecommendationCard extends ConsumerWidget {
                   Text(
                     'Generating AI summary...',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onTertiaryContainer.withValues(alpha: 0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 8),

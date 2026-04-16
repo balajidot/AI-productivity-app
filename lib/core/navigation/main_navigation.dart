@@ -131,12 +131,17 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: const AddHabitSheet(),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: const AddHabitSheet(),
+        ),
       ),
     );
   }
@@ -147,36 +152,44 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     final theme = Theme.of(context);
     final isAiTab = selectedIndex == 3;
     final isHabitsTab = selectedIndex == 4;
+    final isInsightsTab = selectedIndex == 5;
 
     return Scaffold(
       body: IndexedStack(index: selectedIndex, children: _screens),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainer,
-          border: Border(
-            top: BorderSide(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+      bottomNavigationBar: SizedBox(
+        height: 80, // Explicit height to fix body calculation bug
+        child: ClipRect(
+          child: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(
+              top: BorderSide(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                width: 0.5,
+              ),
             ),
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: [
-                _buildNavItem(context, theme, index: 0, label: 'Home', icon: LucideIcons.home, selectedIndex: selectedIndex),
-                _buildNavItem(context, theme, index: 1, label: 'Tasks', icon: LucideIcons.checkSquare, selectedIndex: selectedIndex),
-                _buildNavItem(context, theme, index: 2, label: 'Schedule', icon: LucideIcons.calendar, selectedIndex: selectedIndex),
-                _buildNavItem(context, theme, index: 3, label: 'AI', icon: LucideIcons.messageSquare, selectedIndex: selectedIndex),
-                _buildNavItem(context, theme, index: 4, label: 'Habits', icon: LucideIcons.repeat, selectedIndex: selectedIndex),
-                _buildNavItem(context, theme, index: 5, label: 'Insights', icon: LucideIcons.barChart2, selectedIndex: selectedIndex),
-              ],
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  _buildNavItem(context, theme, index: 0, label: 'Home', icon: LucideIcons.home, selectedIndex: selectedIndex),
+                  _buildNavItem(context, theme, index: 1, label: 'Tasks', icon: LucideIcons.checkSquare, selectedIndex: selectedIndex),
+                  _buildNavItem(context, theme, index: 2, label: 'Schedule', icon: LucideIcons.calendar, selectedIndex: selectedIndex),
+                  _buildNavItem(context, theme, index: 3, label: 'AI', icon: LucideIcons.messageSquare, selectedIndex: selectedIndex),
+                  _buildNavItem(context, theme, index: 4, label: 'Habits', icon: LucideIcons.repeat, selectedIndex: selectedIndex),
+                  _buildNavItem(context, theme, index: 5, label: 'Insights', icon: LucideIcons.barChart2, selectedIndex: selectedIndex),
+                ],
+              ),
             ),
           ),
         ),
       ),
-      floatingActionButton: isAiTab
+    ),
+      floatingActionButton: (isAiTab || isInsightsTab)
           ? null
           : FloatingActionButton(
               onPressed:
@@ -211,7 +224,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       highlightColor: Colors.transparent,
       child: Container(
         constraints: const BoxConstraints(minWidth: 72),
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

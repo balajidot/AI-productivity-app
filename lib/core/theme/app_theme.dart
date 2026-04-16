@@ -191,6 +191,10 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: AppColors.lightOutlineVariant,
+            width: 0.8,
+          ),
         ),
       ),
       

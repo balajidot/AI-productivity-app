@@ -96,6 +96,7 @@ class CalendarScreen extends ConsumerWidget {
           CalendarFormat.month: 'Month',
           CalendarFormat.week: 'Week',
         },
+        startingDayOfWeek: StartingDayOfWeek.monday,
         selectedDayPredicate: (day) => isSameDay(selectedDay, day),
         onDaySelected: (selected, focused) {
           ref.read(calendarSelectedDateProvider.notifier).set(selected);
@@ -141,6 +142,31 @@ class CalendarScreen extends ConsumerWidget {
           ),
           leftChevronIcon: Icon(LucideIcons.chevronLeft, color: theme.colorScheme.primary, size: 24),
           rightChevronIcon: Icon(LucideIcons.chevronRight, color: theme.colorScheme.primary, size: 24),
+        ),
+        calendarBuilders: CalendarBuilders(
+          headerTitleBuilder: (context, day) {
+            if (format == CalendarFormat.week) {
+              final startOfWeek = day.subtract(Duration(days: day.weekday - 1));
+              final endOfWeek = startOfWeek.add(const Duration(days: 6));
+              
+              final rangeText = startOfWeek.month == endOfWeek.month
+                  ? '${DateFormat('MMM d').format(startOfWeek)} - ${DateFormat('d').format(endOfWeek)}'
+                  : '${DateFormat('MMM d').format(startOfWeek)} - ${DateFormat('MMM d').format(endOfWeek)}';
+              
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    rangeText,
+                    style: theme.textTheme.titleMedium!.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return null; // Use default title for month view
+          },
         ),
         daysOfWeekStyle: DaysOfWeekStyle(
           weekdayStyle: theme.textTheme.labelSmall!.copyWith(
@@ -210,12 +236,12 @@ class CalendarScreen extends ConsumerWidget {
       itemCount: tasks.length,
       itemBuilder: (context, index) {
         final task = tasks[index];
-        return _buildTimelineItem(theme, task, index == tasks.length - 1);
+        return _buildTimelineItem(context, theme, task, index == tasks.length - 1);
       },
     );
   }
 
-  Widget _buildTimelineItem(ThemeData theme, Task task, bool isLast) {
+  Widget _buildTimelineItem(BuildContext context, ThemeData theme, Task task, bool isLast) {
     final isCompleted = task.status == TaskStatus.completed;
     final timeLabel = task.time == null ? 'All Day' : task.formattedTime;
 
@@ -281,53 +307,63 @@ class CalendarScreen extends ConsumerWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        task.title,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          decoration: isCompleted ? TextDecoration.lineThrough : null,
-                          color: isCompleted ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
+                child: GestureDetector(
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      isScrollControlled: true,
+                      builder: (context) => QuickAddTaskSheet(editTask: task),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          task.title,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            decoration: isCompleted ? TextDecoration.lineThrough : null,
+                            color: isCompleted ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
+                          ),
                         ),
-                      ),
-                      if (task.category.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: priorityColor.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                task.priorityLabel.toUpperCase(),
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: priorityColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 9,
+                        if (task.category.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: priorityColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  task.priorityLabel.toUpperCase(),
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: priorityColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 9,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              task.category,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                              const SizedBox(width: 8),
+                              Text(
+                                task.category,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),

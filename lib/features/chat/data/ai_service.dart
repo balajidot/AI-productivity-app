@@ -7,7 +7,6 @@ import '../domain/message_model.dart';
 import '../../../core/constants/constants.dart';
 import '../../../core/utils/app_utils.dart';
 
-
 class ChatResult {
   final String text;
   final List<AIAction>? actions;

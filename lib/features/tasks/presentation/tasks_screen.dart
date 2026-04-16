@@ -613,44 +613,30 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
           // Avatar (right)
           Padding(
             padding: const EdgeInsets.only(right: 8, left: 4),
-            child: Consumer(
-            builder: (context, ref, _) {
-              final name = ref.watch(userNameProvider);
-              final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
-            return Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.colorScheme.primary,
-                    theme.colorScheme.tertiary,
-                  ],
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [theme.colorScheme.primary, theme.colorScheme.tertiary],
                   begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-            ),
-            shape: BoxShape.circle,
-            boxShadow: [
-                BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                  ),
-              ],
-            ),
-            child: Center(
-            child: Text(
-              initial,
-                style: const TextStyle(
-                    color: Colors.white,
-                      fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  );
-                },
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
               ),
+              child: Center(
+                child: Text(
+                  ref.read(userNameProvider).isNotEmpty 
+                      ? ref.read(userNameProvider)[0].toUpperCase() 
+                      : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -679,11 +665,13 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
               label: Text(cat['name'] as String),
-              avatar: Icon(
-                cat['icon'] as IconData, 
-                size: 16, 
-                color: isSelected ? theme.colorScheme.onSecondaryContainer : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ),
+              avatar: cat['name'] == 'All' 
+                  ? Icon(
+                      cat['icon'] as IconData, 
+                      size: 16, 
+                      color: isSelected ? theme.colorScheme.onSecondaryContainer : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    )
+                  : null,
               selected: isSelected,
               onSelected: (_) {
                 HapticFeedback.selectionClick();
@@ -703,7 +691,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
                 color: isSelected ? theme.colorScheme.onSecondaryContainer : theme.colorScheme.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
             ),
           );
         }).toList(),

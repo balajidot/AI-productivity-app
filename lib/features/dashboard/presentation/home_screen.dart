@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../tasks/presentation/task_provider.dart';
 import '../../chat/presentation/chat_provider.dart';
@@ -154,15 +153,28 @@ class _HeaderSection extends ConsumerWidget {
                   border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3), width: 2),
                 ),
                 child: ClipOval(
-                  child: photo != null 
-                    ? Image.network(
-                        photo, 
-                        fit: BoxFit.cover,
-                        cacheWidth: 150, // MEMORY OPTIMIZATION: Don't load high-res
-                        cacheHeight: 150,
-                        errorBuilder: (context, error, stackTrace) => const Icon(LucideIcons.user, color: AppColors.primary),
+                  child: photo != null
+                    ? Image.network(photo, fit: BoxFit.cover,
+                        cacheWidth: 150, cacheHeight: 150,
+                        errorBuilder: (context, error, stackTrace) => Center(
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: theme.colorScheme.primary, 
+                              fontWeight: FontWeight.bold
+                            ),
+                          ),
+                        ),
                       )
-                    : const Icon(LucideIcons.user, color: AppColors.primary),
+                    : Center(
+                        child: Text(
+                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.primary, 
+                            fontWeight: FontWeight.bold
+                          ),
+                        ),
+                      ),
                 ),
               ),
             ),
@@ -220,23 +232,22 @@ class _PomodoroSection extends ConsumerWidget {
           label: pomodoro.timeDisplay,
           subLabel: phaseLabel,
         ),
-        const SizedBox(height: 8),
+        // Session dots
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: sessionDots,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        // Controls
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Reset
             IconButton(
               onPressed: notifier.reset,
               icon: const Icon(LucideIcons.rotateCcw),
               tooltip: 'Reset',
             ),
             const SizedBox(width: 12),
-            // Start / Pause
             FilledButton.icon(
               onPressed: pomodoro.isRunning ? notifier.pause : notifier.start,
               icon: Icon(
@@ -420,7 +431,7 @@ class _TodaySection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final todayTasks = ref.watch(todayTasksProvider);
-    final pendingTasks = todayTasks.where((t) => t.status != TaskStatus.completed).toList();
+    final pendingTasks = todayTasks.where((t) => t.status != TaskStatus.completed && !t.isOverdue).toList();
     final completedTasks = todayTasks.where((t) => t.status == TaskStatus.completed).toList();
 
     return SliverMainAxisGroup(
@@ -431,7 +442,7 @@ class _TodaySection extends ConsumerWidget {
             child: SectionHeader(
               title: "TODAY'S FLOW", 
               color: theme.colorScheme.primary, 
-              count: pendingTasks.length // Only show pending count
+              count: pendingTasks.length
             ),
           ),
         ),
@@ -547,26 +558,29 @@ class _QuickActionsSection extends ConsumerWidget {
           )
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _QuickActionBtn(
-                icon: LucideIcons.plus,
-                label: 'Add Task',
-                color: theme.colorScheme.primary,
-                onTap: () => ref.read(navigationProvider.notifier).set(1),
+        Padding(
+          padding: const EdgeInsets.only(right: 72),
+          child: Row(
+            children: [
+              Expanded(
+                child: _QuickActionBtn(
+                  icon: LucideIcons.plus,
+                  label: 'Add Task',
+                  color: theme.colorScheme.primary,
+                  onTap: () => ref.read(navigationProvider.notifier).set(1),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _QuickActionBtn(
-                icon: LucideIcons.messageSquare,
-                label: 'Ask AI',
-                color: theme.colorScheme.secondary,
-                onTap: () => ref.read(navigationProvider.notifier).set(3),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _QuickActionBtn(
+                  icon: LucideIcons.messageSquare,
+                  label: 'Ask AI',
+                  color: theme.colorScheme.secondary,
+                  onTap: () => ref.read(navigationProvider.notifier).set(3),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
 
       ],

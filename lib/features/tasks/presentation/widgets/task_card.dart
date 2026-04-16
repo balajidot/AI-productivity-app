@@ -58,7 +58,7 @@ class TaskCard extends ConsumerWidget {
         ref.read(feedbackProvider.notifier).showMessage('Task deleted');
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -68,7 +68,7 @@ class TaskCard extends ConsumerWidget {
             },
             borderRadius: BorderRadius.circular(20),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: BoxDecoration(
                 color: isCompleted 
                     ? theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.6)
@@ -77,7 +77,7 @@ class TaskCard extends ConsumerWidget {
                 border: Border.all(
                   color: isCompleted 
                       ? Colors.transparent 
-                      : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                      : theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
                   width: 1,
                 ),
                 boxShadow: isCompleted ? [] : [
@@ -125,7 +125,6 @@ class TaskCard extends ConsumerWidget {
       },
       child: Container(
         padding: const EdgeInsets.all(8), // Explicit hit area enhancement
-        margin: const EdgeInsets.only(left: -8), // Compensate for padding to maintain alignment
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           width: 26,
@@ -298,7 +297,7 @@ class _TaskBodySection extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Row(
           children: [
             _buildSmallTag(

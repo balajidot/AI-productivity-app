@@ -4,5 +4,6 @@
   },
   "java.import.exclusions": [
     "**/.claude/**"
-  ]
+  ],
+  "java.configuration.updateBuildConfiguration": "interactive"
 }

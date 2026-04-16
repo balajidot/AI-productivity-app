@@ -58,49 +58,52 @@ class _ProductivityPulseGaugeState extends ConsumerState<ProductivityPulseGauge>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 180,
-              height: 180,
-              child: CustomPaint(
-                painter: _GaugePainter(
-                  progress: _animation.value,
-                  primaryColor: theme.colorScheme.primary,
-                  secondaryColor: theme.colorScheme.tertiary,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                ),
-              ),
-            ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
+    return Center(
+      child: SizedBox(
+        width: 200,
+        height: 200,
+        child: AnimatedBuilder(
+          animation: _animation,
+          builder: (context, child) {
+            return Stack(
+              alignment: Alignment.center,
               children: [
-                Text(
-                  '${(_animation.value * 100).toInt()}%',
-                  style: (theme.textTheme.displayMedium ?? const TextStyle()).copyWith(
-                    fontSize: 42,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -1,
-                    color: theme.colorScheme.onSurface,
+                CustomPaint(
+                  size: const Size(200, 200),
+                  painter: _GaugePainter(
+                    progress: _animation.value,
+                    primaryColor: theme.colorScheme.primary,
+                    secondaryColor: theme.colorScheme.tertiary,
+                    backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                   ),
                 ),
-                Text(
-                  widget.label.toUpperCase(),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${(_animation.value * 100).toInt()}%',
+                      style: (theme.textTheme.displayMedium ?? const TextStyle()).copyWith(
+                        fontSize: 42,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -1,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    Text(
+                      widget.label.toUpperCase(),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 }

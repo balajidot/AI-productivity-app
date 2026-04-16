@@ -1,18 +1,19 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import '../pomodoro_provider.dart';
 
 class FocusHubWidget extends ConsumerStatefulWidget {
-  final double progress; // 0.0 to 1.0
+  final double progress;
   final String label;
   final String subLabel;
 
   const FocusHubWidget({
     super.key,
     required this.progress,
-    this.label = 'Productivity',
-    this.subLabel = 'Daily Flow',
+    this.label = '25:00',
+    this.subLabel = 'Focus',
   });
 
   @override
@@ -23,22 +24,54 @@ class _FocusHubWidgetState extends ConsumerState<FocusHubWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  late AnimationController _progressController;
+  late Animation<double> _progressAnimation;
+  double _lastProgress = 0;
 
   @override
   void initState() {
     super.initState();
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1200),
     );
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.04).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+    _progressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _progressAnimation = Tween<double>(
+      begin: widget.progress,
+      end: widget.progress,
+    ).animate(CurvedAnimation(
+      parent: _progressController,
+      curve: Curves.easeOutCubic,
+    ));
+    _lastProgress = widget.progress;
+  }
+
+  @override
+  void didUpdateWidget(FocusHubWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.progress != widget.progress) {
+      _progressAnimation = Tween<double>(
+        begin: _lastProgress,
+        end: widget.progress,
+      ).animate(CurvedAnimation(
+        parent: _progressController,
+        curve: Curves.easeOutCubic,
+      ));
+      _lastProgress = widget.progress;
+      _progressController.forward(from: 0);
+    }
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _progressController.dispose();
     super.dispose();
   }
 
@@ -48,99 +81,111 @@ class _FocusHubWidgetState extends ConsumerState<FocusHubWidget>
     final isRunning = ref.watch(pomodoroProvider.select((s) => s.isRunning));
 
     if (isRunning) {
-      _pulseController.repeat(reverse: true);
+      if (!_pulseController.isAnimating) {
+        _pulseController.repeat(reverse: true);
+      }
     } else {
       _pulseController.stop();
-      _pulseController.value = 0; // reset to 1.0 scale
+      _pulseController.value = 0;
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: widget.progress),
-            duration: const Duration(milliseconds: 1200),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 200,
-                    height: 120,
-                    child: RepaintBoundary(
-                      child: CustomPaint(
-                        painter: _RadialPainter(
-                          progress: value,
-                          color: theme.colorScheme.primary,
-                          backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 220,
+          height: 220,
+          child: AnimatedBuilder(
+            animation: _progressAnimation,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: _HorseshoePainter(
+                  progress: _progressAnimation.value,
+                  trackColor: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                  progressColor: theme.colorScheme.primary,
+                  strokeWidth: 16,
+                ),
+                child: Center(
+                  child: ScaleTransition(
+                    scale: _pulseAnimation,
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        ScaleTransition(
-                          scale: _pulseAnimation,
-                          child: Text(
-                            widget.label,
-                            style: theme.textTheme.displayMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color: theme.colorScheme.onSurface,
-                              letterSpacing: -1,
-                            ),
+                        Text(
+                          widget.label,
+                          style: theme.textTheme.displaySmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: theme.colorScheme.onSurface,
+                            letterSpacing: -1,
                           ),
                         ),
                         Text(
                           widget.subLabel.toUpperCase(),
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                            letterSpacing: 1.5,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.primary,
+                            letterSpacing: 2,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
+                ),
               );
             },
           ),
-          const SizedBox(height: 24),
-          Consumer(
-            builder: (context, ref, child) {
-              final selectedTask = ref.watch(pomodoroProvider.select((s) => s.selectedTask));
-              final isRunning = ref.watch(pomodoroProvider.select((s) => s.isRunning));
+        ),
+        const SizedBox(height: 16),
+        Consumer(
+          builder: (context, ref, child) {
+            final selectedTask =
+                ref.watch(pomodoroProvider.select((s) => s.selectedTask));
 
-              if (selectedTask != null) {
-                return ActionChip(
-                  avatar: Icon(Icons.check_circle_outline, size: 16, color: theme.colorScheme.onPrimaryContainer),
-                  label: Text(
-                    selectedTask.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
-                  ),
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  onPressed: isRunning ? null : () => _showTaskSelectionSheet(context, ref),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                );
-              }
-
+            if (selectedTask != null) {
               return ActionChip(
-                avatar: const Icon(Icons.link, size: 16),
-                label: const Text('Link a Task'),
-                onPressed: isRunning ? null : () => _showTaskSelectionSheet(context, ref),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                avatar: Icon(
+                  LucideIcons.checkCircle,
+                  size: 16,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+                label: Text(
+                  selectedTask.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
+                ),
+                backgroundColor: theme.colorScheme.primaryContainer,
+                onPressed: () => _showTaskSelectionSheet(context, ref),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
               );
-            },
-          ),
-        ],
-      ),
+            }
+
+            return TextButton.icon(
+              onPressed: () => _showTaskSelectionSheet(context, ref),
+              icon: Icon(LucideIcons.link2,
+                  size: 15, color: theme.colorScheme.primary),
+              label: Text(
+                'Link a Task',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                side: BorderSide(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                    width: 1.2),
+                minimumSize: const Size(140, 40),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -148,11 +193,62 @@ class _FocusHubWidgetState extends ConsumerState<FocusHubWidget>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) {
-        return const _TaskSelectionSheet();
-      },
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _TaskSelectionSheet(),
     );
   }
+}
+
+class _HorseshoePainter extends CustomPainter {
+  final double progress;
+  final Color trackColor;
+  final Color progressColor;
+  final double strokeWidth;
+
+  const _HorseshoePainter({
+    required this.progress,
+    required this.trackColor,
+    required this.progressColor,
+    required this.strokeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (math.min(size.width, size.height) / 2) - strokeWidth;
+
+    const startAngle = math.pi * 0.75;
+    const sweepAngle = math.pi * 1.5;
+
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    // Track (background)
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(rect, startAngle, sweepAngle, false, trackPaint);
+
+    // Progress
+    if (progress > 0.005) {
+      final progressPaint = Paint()
+        ..color = progressColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+          rect, startAngle, sweepAngle * progress.clamp(0.0, 1.0), false, progressPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HorseshoePainter old) =>
+      old.progress != progress ||
+      old.trackColor != trackColor ||
+      old.progressColor != progressColor;
 }
 
 class _TaskSelectionSheet extends ConsumerWidget {
@@ -160,12 +256,10 @@ class _TaskSelectionSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // We import task_provider.dart dynamically in this file above
-    // So activeTasksProvider is available
     final theme = Theme.of(context);
-    // Use tasksProvider to get current active ones, this avoid circular dependency issues if imports missed
     final tasksList = ref.watch(pomodoroTaskSelectorProvider);
-    final selectedTask = ref.watch(pomodoroProvider.select((s) => s.selectedTask));
+    final selectedTask =
+        ref.watch(pomodoroProvider.select((s) => s.selectedTask));
 
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
@@ -182,12 +276,26 @@ class _TaskSelectionSheet extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Select Task for Focus', style: theme.textTheme.headlineSmall),
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text('Link a Task to Focus',
+                  style: theme.textTheme.headlineSmall),
               const SizedBox(height: 16),
               if (selectedTask != null)
                 ListTile(
-                  leading: const Icon(Icons.link_off, color: Colors.red),
-                  title: const Text('Unlink Task', style: TextStyle(color: Colors.red)),
+                  leading: Icon(LucideIcons.x, color: theme.colorScheme.error),
+                  title: Text('Unlink Task',
+                      style:
+                          TextStyle(color: theme.colorScheme.error)),
                   onTap: () {
                     ref.read(pomodoroProvider.notifier).selectTask(null);
                     Navigator.pop(context);
@@ -195,7 +303,9 @@ class _TaskSelectionSheet extends ConsumerWidget {
                 ),
               Expanded(
                 child: tasksList.isEmpty
-                    ? Center(child: Text('No active tasks.', style: theme.textTheme.bodyLarge))
+                    ? Center(
+                        child: Text('No active tasks.',
+                            style: theme.textTheme.bodyLarge))
                     : ListView.builder(
                         controller: scrollController,
                         itemCount: tasksList.length,
@@ -203,11 +313,22 @@ class _TaskSelectionSheet extends ConsumerWidget {
                           final task = tasksList[index];
                           final isSelected = selectedTask?.id == task.id;
                           return ListTile(
+                            leading: Icon(
+                              isSelected
+                                  ? LucideIcons.checkCircle
+                                  : LucideIcons.circle,
+                              color: isSelected
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.outlineVariant,
+                              size: 20,
+                            ),
                             title: Text(task.title),
-                            subtitle: Text('${task.category} • ${task.priorityLabel} priority'),
-                            trailing: isSelected ? const Icon(Icons.check, color: Colors.green) : null,
+                            subtitle: Text(
+                                '${task.category} · ${task.priorityLabel}'),
                             onTap: () {
-                              ref.read(pomodoroProvider.notifier).selectTask(task);
+                              ref
+                                  .read(pomodoroProvider.notifier)
+                                  .selectTask(task);
                               Navigator.pop(context);
                             },
                           );
@@ -220,48 +341,4 @@ class _TaskSelectionSheet extends ConsumerWidget {
       },
     );
   }
-}
-
-
-class _RadialPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-  final Color backgroundColor;
-
-  _RadialPainter({
-    required this.progress,
-    required this.color,
-    required this.backgroundColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height * 2);
-    const startAngle = math.pi;
-    const sweepAngle = math.pi;
-
-    final paintBase = Paint()
-      ..color = backgroundColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 14
-      ..strokeCap = StrokeCap.round;
-
-    final paintProgress = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 14
-      ..strokeCap = StrokeCap.round;
-
-    // Draw background arc (always visible)
-    canvas.drawArc(rect, startAngle, sweepAngle, false, paintBase);
-
-    // Draw progress arc
-    if (progress > 0) {
-      canvas.drawArc(rect, startAngle, sweepAngle * progress, false, paintProgress);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _RadialPainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.color != color;
 }
