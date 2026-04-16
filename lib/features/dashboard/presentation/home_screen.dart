@@ -200,14 +200,15 @@ class _PomodoroSection extends ConsumerWidget {
     final sessionDots = List.generate(4, (i) {
       final filled = i < (pomodoro.sessionCount % 4);
       return Container(
-        width: 8,
-        height: 8,
-        margin: const EdgeInsets.symmetric(horizontal: 3),
+        width: 10,
+        height: 10,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: filled
-              ? theme.colorScheme.primary
-              : theme.colorScheme.outlineVariant,
+          color: filled ? theme.colorScheme.primary : Colors.transparent,
+          border: filled 
+            ? null 
+            : Border.all(color: theme.colorScheme.outline, width: 1.5),
         ),
       );
     });

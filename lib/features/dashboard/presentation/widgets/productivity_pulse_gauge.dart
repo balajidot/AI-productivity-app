@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ProductivityPulseGauge extends ConsumerStatefulWidget {
@@ -82,7 +81,7 @@ class _ProductivityPulseGaugeState extends ConsumerState<ProductivityPulseGauge>
               children: [
                 Text(
                   '${(_animation.value * 100).toInt()}%',
-                  style: GoogleFonts.manrope(
+                  style: (theme.textTheme.displayMedium ?? const TextStyle()).copyWith(
                     fontSize: 42,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -1,

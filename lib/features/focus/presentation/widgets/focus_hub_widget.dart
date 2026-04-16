@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../pomodoro_provider.dart';
 
-class FocusHubWidget extends StatelessWidget {
+class FocusHubWidget extends ConsumerStatefulWidget {
   final double progress; // 0.0 to 1.0
   final String label;
   final String subLabel;
@@ -15,74 +16,97 @@ class FocusHubWidget extends StatelessWidget {
   });
 
   @override
+  ConsumerState<FocusHubWidget> createState() => _FocusHubWidgetState();
+}
+
+class _FocusHubWidgetState extends ConsumerState<FocusHubWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+    final isRunning = ref.watch(pomodoroProvider.select((s) => s.isRunning));
+
+    if (isRunning) {
+      _pulseController.repeat(reverse: true);
+    } else {
+      _pulseController.stop();
+      _pulseController.value = 0; // reset to 1.0 scale
+    }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: progress),
-            duration: const Duration(milliseconds: 1200),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 200,
-                    height: 120,
-                    child: RepaintBoundary(
-                      child: CustomPaint(
-                        painter: _RadialPainter(
-                          progress: value,
-                          color: theme.colorScheme.primary,
-                          backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: widget.progress),
+        duration: const Duration(milliseconds: 1200),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 200,
+                height: 120,
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    painter: _RadialPainter(
+                      progress: value,
+                      color: theme.colorScheme.primary,
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                child: Column(
+                  children: [
+                    ScaleTransition(
+                      scale: _pulseAnimation,
+                      child: Text(
+                        widget.label,
+                        style: theme.textTheme.displayMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: theme.colorScheme.onSurface,
+                          letterSpacing: -1,
                         ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    child: Column(
-                      children: [
-                        Text(
-                          '${(value * 100).toInt()}%',
-                          style: GoogleFonts.outfit(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.onSurface,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                        Text(
-                          label,
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      widget.subLabel.toUpperCase(),
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                        letterSpacing: 1.5,
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-          Text(
-            subLabel,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-        ],
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -117,15 +141,16 @@ class _RadialPainter extends CustomPainter {
       ..strokeWidth = 14
       ..strokeCap = StrokeCap.round;
 
-    // Draw background arc
+    // Draw background arc (always visible)
     canvas.drawArc(rect, startAngle, sweepAngle, false, paintBase);
 
     // Draw progress arc
-    canvas.drawArc(rect, startAngle, sweepAngle * progress, false, paintProgress);
+    if (progress > 0) {
+      canvas.drawArc(rect, startAngle, sweepAngle * progress, false, paintProgress);
+    }
   }
 
-
   @override
-  bool shouldRepaint(covariant _RadialPainter oldDelegate) => 
+  bool shouldRepaint(covariant _RadialPainter oldDelegate) =>
       oldDelegate.progress != progress || oldDelegate.color != color;
 }

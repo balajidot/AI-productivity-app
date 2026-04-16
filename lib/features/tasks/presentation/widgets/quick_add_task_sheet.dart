@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../domain/task.dart';
 import '../task_provider.dart';
 import '../../data/natural_language_parser.dart';
+import '../../../../core/utils/app_utils.dart';
 
 class QuickAddTaskSheet extends ConsumerStatefulWidget {
   final Task? editTask;
@@ -576,7 +577,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
     final task = Task(
       id: isEditing
           ? widget.editTask!.id
-          : DateTime.now().millisecondsSinceEpoch.toString(),
+          : AppUtils.generateId(prefix: 'task'),
       title: finalTitle,
       date: _selectedDate,
       time: _selectedTime != null ? _formatTimeOfDay(_selectedTime!) : null,

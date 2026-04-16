@@ -391,7 +391,6 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 12),
           const SizedBox(height: 32),
           _buildSuggestionCard(
             theme,

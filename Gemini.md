@@ -428,7 +428,7 @@ flutter clean && flutter pub get
 ### Icons
 - **ONLY** `LucideIcons.*` — never `Icons.*` (Material)
 - Maps containing `LucideIcons` values → `static final`, never `static const`
-- Safe confirmed icons: `home`, `checkSquare`, `calendar`, `messageSquare`, `repeat`, `barChart2`, `plus`, `brain`, `star`, `bookOpen`, `activity`, `flame`, `checkCircle`, `edit3`, `rotateCcw`, `play`, `pause`, `timer`, `coffee`, `sparkles`, `layers`, `briefcase`, `heart`, `inbox`, `search`, `user`, `trash2`, `check`, `x`, `chevronLeft`, `chevronRight`, `calendarPlus`, `calendarClock`, `target`, `zap`, `clock`, `list`, `sun`, `moon`, `sunset`, `sunrise`
+- Safe confirmed icons: `home`, `checkSquare`, `calendar`, `messageSquare`, `repeat`, `barChart2`, `plus`, `brain`, `star`, `bookOpen`, `activity`, `flame`, `checkCircle`, `edit3`, `rotateCcw`, `play`, `pause`, `timer`, `coffee`, `sparkles`, `layers`, `briefcase`, `heart`, `inbox`, `search`, `user`, `trash2`, `check`, `x`, `chevronLeft`, `chevronRight`, `calendarPlus`, `calendarClock`, `target`, `zap`, `clock`, `list`, `sun`, `moon`, `sunset`, `sunrise`, `wallet`
 
 ### ID Generation
 `AppUtils.generateId(prefix: 'task')` → `task_1713012345_4827`. Never use `uuid` or hardcode IDs.

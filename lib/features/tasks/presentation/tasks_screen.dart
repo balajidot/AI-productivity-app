@@ -663,6 +663,8 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
       {'name': 'Personal', 'icon': LucideIcons.home},
       {'name': 'Work', 'icon': LucideIcons.briefcase},
       {'name': 'Health', 'icon': LucideIcons.heart},
+      {'name': 'Study', 'icon': LucideIcons.bookOpen},
+      {'name': 'Finance', 'icon': LucideIcons.wallet},
       {'name': 'Inbox', 'icon': LucideIcons.inbox},
     ];
 

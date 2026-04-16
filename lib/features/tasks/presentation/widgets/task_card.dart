@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../task_provider.dart';
 import '../../domain/task.dart';
+import '../../../chat/presentation/feedback_provider.dart';
 
 
 class TaskCard extends ConsumerWidget {
@@ -54,25 +54,8 @@ class TaskCard extends ConsumerWidget {
         }
       },
       onDismissed: (_) async {
-        final deletedTask = task;
         await ref.read(tasksProvider.notifier).deleteTask(task.id);
-        
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${task.title} deleted', style: const TextStyle(fontWeight: FontWeight.w500)),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              action: SnackBarAction(
-                label: 'UNDO',
-                textColor: theme.colorScheme.primary,
-                onPressed: () => ref.read(tasksProvider.notifier).addTask(deletedTask),
-              ),
-            ),
-          );
-        }
+        ref.read(feedbackProvider.notifier).showMessage('Task deleted');
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -164,7 +147,7 @@ class TaskCard extends ConsumerWidget {
               opacity: isCompleted ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 200),
               child: Icon(
-                Icons.check_rounded, 
+                LucideIcons.check, 
                 size: 18, 
                 color: theme.colorScheme.onPrimary,
               ),
@@ -193,6 +176,7 @@ class _DismissBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       alignment: alignment,
       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -210,12 +194,10 @@ class _DismissBackground extends StatelessWidget {
           ],
           Text(
             label, 
-            style: GoogleFonts.outfit(
-              textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: textColor, 
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: textColor, 
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
             ),
           ),
           if (alignment == Alignment.centerRight) ...[
@@ -271,18 +253,16 @@ class _TaskBodySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final baseStyle = GoogleFonts.outfit(
-      textStyle: theme.textTheme.titleMedium?.copyWith(
-        fontWeight: isCompleted ? FontWeight.w400 : FontWeight.w600,
-        decoration: isCompleted ? TextDecoration.lineThrough : null,
-        color: isCompleted
-            ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-            : isOverdue
-                ? theme.colorScheme.error
-                : theme.colorScheme.onSurface,
-        fontSize: 18,
-        letterSpacing: 0.1,
-      ),
+    final baseStyle = (theme.textTheme.titleMedium ?? const TextStyle()).copyWith(
+      fontWeight: isCompleted ? FontWeight.w400 : FontWeight.w600,
+      decoration: isCompleted ? TextDecoration.lineThrough : null,
+      color: isCompleted
+          ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+          : isOverdue
+              ? theme.colorScheme.error
+              : theme.colorScheme.onSurface,
+      fontSize: 18,
+      letterSpacing: 0.1,
     );
     final highlightStyle = baseStyle.copyWith(
       backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
@@ -413,14 +393,12 @@ class _TimeDisplay extends StatelessWidget {
         if (task.time != null)
           Text(
             task.formattedTime,
-            style: GoogleFonts.outfit(
-              textStyle: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: isCompleted 
-                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4) 
-                    : theme.colorScheme.primary,
-                fontSize: 13,
-              ),
+            style: (theme.textTheme.labelLarge ?? const TextStyle()).copyWith(
+              fontWeight: FontWeight.w700,
+              color: isCompleted 
+                  ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4) 
+                  : theme.colorScheme.primary,
+              fontSize: 13,
             ),
           ),
         Text(
