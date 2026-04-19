@@ -11,31 +11,36 @@
 
 ## COMPLETED TASKS ARCHIVE
 
-### BRIDGE-005 to BRIDGE-012 -- ALL DONE
-- Full rebranding, all bugs fixed, icon updated, APK: 24.7MB.
+### BRIDGE-005 to BRIDGE-013 -- ALL DONE
+- Full rebranding, all bugs fixed, new icon, asset cleanup.
+- APK: 24.7MB. AAB: 50.5MB. flutter analyze: 0 issues throughout.
 
-### BRIDGE-013 -- Final Bug Fixes Round 5
+### BRIDGE-014 -- Icon Rule Fixes + Light Theme Completion
 **Status:** DONE
-- BUG-26: ScaffoldMessenger -> feedbackProvider in nl_input_bar. ✅
-- BUG-27: onChanged listener added to NL input bar. ✅
-- BUG-28: Skipped -- initialValue is correct in Flutter 3.41+.
-- IMP-14: Task card font size 18 -> 15. ✅
+- BUG-29 & BUG-30 fixed: Replaced Material Icons with LucideIcons in calendar and celebration overlay.
+- IMP-15 fixed: Completed textTheme for both light and dark themes.
 - flutter analyze: 0 issues.
+- Git Push: Completed and secrets redacted from history.
 
 ---
 
 ## CURRENT TASK
-**Status:** TODO
-**ID:** BRIDGE-014
+**Status:** PENDING
+**ID:** BRIDGE-015
 
 ---
 
-### TASK: Material Icon Rule Fixes + Light Theme Completion + Final Production Build
+### TASK: [Awaiting next instructions]
+
+---
+
+### TASK: Icon Rule Fixes + Light Theme Completion
 
 **Step 0 -- Before you write a single line of code:**
 Read `project_rules.md` fully.
 
-**Context:** Claude deep-reviewed `calendar_screen.dart`, `celebration_overlay.dart`, and `app_theme.dart` and found 2 icon rule violations and an incomplete light theme.
+**Context:** Claude found 2 icon rule violations and incomplete light theme text styles.
+Do NOT run a build. Run `flutter analyze` only at the end.
 
 ---
 
@@ -43,12 +48,12 @@ Read `project_rules.md` fully.
 
 ### BUG-29
 **File:** `lib/features/tasks/presentation/calendar_screen.dart`
-**Location:** `_buildTimelineItem()` method -- inside the timeline dot container.
-**Problem:** `Icons.check` (Material icon) used instead of `LucideIcons`. Violates Rule 1.
+**Location:** `_buildTimelineItem()` -- inside the timeline dot container.
+**Problem:** `Icons.check` used instead of `LucideIcons.check`. Rule violation.
 
-**How to find:** Search for `Icons.check` in `calendar_screen.dart`.
+**Find:** Search `Icons.check` in `calendar_screen.dart`
 
-**Current code:**
+**Current:**
 ```dart
 child: isCompleted
     ? Icon(Icons.check, size: 8, color: theme.colorScheme.surface)
@@ -66,12 +71,12 @@ child: isCompleted
 
 ### BUG-30
 **File:** `lib/features/dashboard/presentation/widgets/celebration_overlay.dart`
-**Location:** Inside `_CelebrationWidgetState.build()`, in the center checkmark `Icon` widget.
-**Problem:** `Icons.check_rounded` (Material icon) used instead of `LucideIcons`. Violates Rule 1.
+**Location:** Center checkmark Icon widget inside `_CelebrationWidgetState.build()`
+**Problem:** `Icons.check_rounded` used. Rule violation.
 
-**How to find:** Search for `Icons.check_rounded` in `celebration_overlay.dart`.
+**Find:** Search `Icons.check_rounded` in `celebration_overlay.dart`
 
-**Current code:**
+**Current:**
 ```dart
 icon: Icons.check_rounded,
 ```
@@ -81,23 +86,70 @@ icon: Icons.check_rounded,
 icon: LucideIcons.checkCircle,
 ```
 
-**Also add import** to `celebration_overlay.dart` if not already present:
+**Add import** if not present:
 ```dart
 import 'package:lucide_icons/lucide_icons.dart';
 ```
 
 ---
 
-## SECTION B -- LIGHT THEME COMPLETION
+## SECTION B -- LIGHT + DARK THEME COMPLETION
 
 ### IMP-15
 **File:** `lib/core/theme/app_theme.dart`
-**Location:** Inside `lightTheme`, the `textTheme:` block.
 
-**Problem:** The light theme `textTheme` only defines 6 styles (`displayLarge`, `headlineLarge`, `headlineMedium`, `bodyLarge`, `bodyMedium`, `labelLarge`). Many styles used throughout the app (`displaySmall`, `headlineSmall`, `titleLarge`, `titleMedium`, `titleSmall`, `labelSmall`, `labelMedium`, `bodySmall`) are missing. In light mode, these fall back to Flutter defaults with wrong colors.
+**Problem:** Both `darkTheme` and `lightTheme` are missing these text styles:
+`displaySmall`, `headlineSmall`, `titleLarge`, `titleMedium`, `titleSmall`, `labelSmall`, `labelMedium`, `bodySmall`
 
-**Fix:** Add the missing text styles to `lightTheme`. Add these entries inside the `textTheme: const TextTheme(...)` block of `lightTheme`:
+These are used throughout the app. Without them, Flutter falls back to defaults with wrong colors.
 
+**Fix for `darkTheme`** -- add inside `textTheme: const TextTheme(...)`:
+```dart
+displaySmall: TextStyle(
+  fontSize: 24,
+  fontWeight: FontWeight.bold,
+  color: AppColors.onSurface,
+  letterSpacing: -0.5,
+),
+headlineSmall: TextStyle(
+  fontSize: 18,
+  fontWeight: FontWeight.bold,
+  color: AppColors.onSurface,
+),
+titleLarge: TextStyle(
+  fontSize: 20,
+  fontWeight: FontWeight.w600,
+  color: AppColors.onSurface,
+),
+titleMedium: TextStyle(
+  fontSize: 16,
+  fontWeight: FontWeight.w600,
+  color: AppColors.onSurface,
+),
+titleSmall: TextStyle(
+  fontSize: 14,
+  fontWeight: FontWeight.w500,
+  color: AppColors.onSurface,
+),
+labelSmall: TextStyle(
+  fontSize: 11,
+  fontWeight: FontWeight.w500,
+  color: AppColors.onSurfaceVariant,
+  letterSpacing: 0.5,
+),
+labelMedium: TextStyle(
+  fontSize: 12,
+  fontWeight: FontWeight.w500,
+  color: AppColors.onSurfaceVariant,
+),
+bodySmall: TextStyle(
+  fontSize: 12,
+  color: AppColors.onSurfaceVariant,
+  height: 1.4,
+),
+```
+
+**Fix for `lightTheme`** -- add inside `textTheme: const TextTheme(...)`:
 ```dart
 displaySmall: TextStyle(
   fontSize: 24,
@@ -143,47 +195,16 @@ bodySmall: TextStyle(
 ),
 ```
 
-**Also check `darkTheme`** and add the same missing styles there using `AppColors.onSurface` and `AppColors.onSurfaceVariant` for dark colors. Match the same pattern.
-
 ---
 
-## SECTION C -- FINAL PRODUCTION BUILD
+## SECTION C -- VERIFICATION ONLY
 
-After all fixes:
-
-### STEP-01: Analyze
 ```bash
 flutter analyze --no-fatal-infos
 ```
 Expected: 0 errors, 0 warnings.
 
-### STEP-02: Build final AAB (Play Store)
-```powershell
-flutter build appbundle --release `
-  --obfuscate `
-  --split-debug-info=build/debug-info `
-  --dart-define=GEMINI_API_KEY=[REDACTED] `
-  --dart-define=NVIDIA_API_KEY=none `
-  --dart-define=GROQ_API_KEY=[REDACTED]
-```
-
-### STEP-03: Build final APK (device testing)
-```powershell
-flutter build apk --release `
-  --obfuscate `
-  --split-debug-info=build/debug-info `
-  --target-platform android-arm64 `
-  --dart-define=GEMINI_API_KEY=[REDACTED] `
-  --dart-define=NVIDIA_API_KEY=none `
-  --dart-define=GROQ_API_KEY=[REDACTED]
-```
-
-### STEP-04: Measure sizes
-```powershell
-$aab = (Get-Item "build\app\outputs\bundle\release\app-release.aab").Length / 1MB
-$apk = (Get-Item "build\app\outputs\flutter-apk\app-release.apk").Length / 1MB
-Write-Host "FINAL -- AAB: $([math]::Round($aab, 1)) MB | APK: $([math]::Round($apk, 1)) MB"
-```
+**DO NOT run flutter build. Analyze only.**
 
 ---
 
@@ -195,22 +216,17 @@ Write-Host "FINAL -- AAB: $([math]::Round($aab, 1)) MB | APK: $([math]::Round($a
 | Feedback | `ref.read(feedbackProvider.notifier).showMessage(...)` | `ScaffoldMessenger...` |
 | IDs | `AppUtils.generateId(prefix: 'task')` | `uuid.v4()` |
 | Fonts | `theme.textTheme.bodyMedium` | `GoogleFonts.inter(...)` |
-| Tasks | `ref.read(tasksProvider.notifier).addTask(task)` | Direct Firestore |
 
 ---
 
 ## RESULT
-**Status:** PENDING
-
-When complete, fill in every field:
-- BUG-29 Icons.check in calendar fixed: Yes / No
-- BUG-30 Icons.check_rounded in celebration fixed: Yes / No
-- IMP-15 Light theme text styles completed: Yes / No
-- Dark theme text styles completed: Yes / No
-- flutter analyze: (paste exact output)
-- AAB size: ___MB
-- APK size: ___MB
-- Any blockers: ___
+**Status:** DONE
+- BUG-29 Icons.check in calendar fixed: Yes
+- BUG-30 Icons.check_rounded in celebration fixed: Yes
+- IMP-15 Dark theme text styles added: Yes
+- IMP-15 Light theme text styles added: Yes
+- flutter analyze: No issues found!
+- Any blockers: None
 
 ### PATHS FOR CLAUDE
 - Implementation Plan: `C:\Users\acer\.gemini\antigravity\brain\142dfaf3-d3c7-4400-8641-76d000e61970\implementation_plan.md`
