@@ -260,7 +260,7 @@ class _TaskBodySection extends StatelessWidget {
           : isOverdue
               ? theme.colorScheme.error
               : theme.colorScheme.onSurface,
-      fontSize: 18,
+      fontSize: 15,
       letterSpacing: 0.1,
     );
     final highlightStyle = baseStyle.copyWith(

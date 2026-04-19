@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:ai_productivity_assistant/main.dart';
+import 'package:zeno/main.dart';
 
 void main() {
   testWidgets('shows firebase error shell when firebase is unavailable', (WidgetTester tester) async {

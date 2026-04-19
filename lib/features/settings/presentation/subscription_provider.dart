@@ -76,7 +76,8 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
               ? (expiryTs as dynamic).toDate() as DateTime
               : null;
           final isStillActive = isPremium &&
-              (expiry == null || expiry.isAfter(DateTime.now()));
+              expiry != null &&
+              expiry.isAfter(DateTime.now());
           if (isStillActive) {
             state = state.copyWith(isPro: true);
           }
@@ -139,7 +140,7 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
       state = state.copyWith(isPro: true, isLoading: false);
       
       // Notify main feedback
-      ref.read(feedbackProvider.notifier).showMessage('Obsidian Pro activated!');
+      ref.read(feedbackProvider.notifier).showMessage('Zeno Pro activated!');
     } catch (e) {
       state = state.copyWith(isLoading: false, error: 'Failed to update status');
     }

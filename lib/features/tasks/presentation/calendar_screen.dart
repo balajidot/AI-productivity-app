@@ -300,7 +300,7 @@ class CalendarScreen extends ConsumerWidget {
                 ),
               ),
               child: isCompleted
-                  ? Icon(Icons.check, size: 8, color: theme.colorScheme.surface)
+                  ? Icon(LucideIcons.check, size: 8, color: theme.colorScheme.surface)
                   : null,
             ),
             const SizedBox(width: 16),

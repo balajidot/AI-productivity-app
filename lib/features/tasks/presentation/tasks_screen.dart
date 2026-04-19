@@ -671,8 +671,8 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
               ),
               child: Center(
                 child: Text(
-                  ref.read(userNameProvider).isNotEmpty 
-                      ? ref.read(userNameProvider)[0].toUpperCase() 
+                  ref.watch(userNameProvider).isNotEmpty 
+                      ? ref.watch(userNameProvider)[0].toUpperCase() 
                       : '?',
                   style: const TextStyle(
                     color: Colors.white,

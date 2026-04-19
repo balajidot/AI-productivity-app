@@ -212,10 +212,10 @@ class _WeeklyReportScreenState extends ConsumerState<WeeklyReportScreen> {
   }
 
   Widget _buildMetricGrid(ThemeData theme) {
-    final tasks = ref.read(metricsTasksProvider).value ?? [];
-    final habits = ref.read(habitsProvider);
-    final messages = ref.read(messagesStreamProvider).value ?? [];
-    final prefs = ref.read(sharedPreferencesProvider);
+    final tasks = ref.watch(metricsTasksProvider).value ?? [];
+    final habits = ref.watch(habitsProvider);
+    final messages = ref.watch(messagesStreamProvider).value ?? [];
+    final prefs = ref.watch(sharedPreferencesProvider);
     final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
 
     final completedTasks = tasks.where((t) => t.status == TaskStatus.completed && t.date.isAfter(sevenDaysAgo)).length;

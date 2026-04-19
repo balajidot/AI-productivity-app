@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:ai_productivity_assistant/features/tasks/presentation/task_provider.dart';
+import 'package:zeno/features/tasks/presentation/task_provider.dart';
 import '../../chat/presentation/chat_provider.dart';
 import '../../insights/presentation/weekly_report_screen.dart';
 import '../../settings/presentation/settings_provider.dart';
@@ -68,9 +68,11 @@ class _InsightsBody extends ConsumerWidget {
                       MaterialPageRoute(builder: (_) => const WeeklyReportScreen()),
                     );
                   } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PaywallScreen()),
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => const PaywallScreen(),
                     );
                   }
                 },

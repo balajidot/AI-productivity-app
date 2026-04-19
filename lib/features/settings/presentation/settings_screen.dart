@@ -9,6 +9,8 @@ import '../../settings/presentation/settings_provider.dart';
 import 'paywall_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/constants.dart';
+import '../../chat/presentation/feedback_provider.dart';
+import '../../../core/utils/service_failure.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -350,10 +352,8 @@ class SettingsScreen extends ConsumerWidget {
                           icon: LucideIcons.shieldCheck,
                           title: 'Privacy Policy',
                           onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Privacy Policy coming soon!'),
-                              ),
+                            ref.read(feedbackProvider.notifier).showMessage(
+                              'Privacy Policy coming soon!',
                             );
                           },
                         ),
@@ -364,13 +364,8 @@ class SettingsScreen extends ConsumerWidget {
                           subtitle: 'Synced with Firebase',
                           onTap: () async {
                             await ref.read(tasksProvider.notifier).refresh();
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Latest tasks synced successfully.',
-                                ),
-                              ),
+                            ref.read(feedbackProvider.notifier).showMessage(
+                              'Latest tasks synced successfully.',
                             );
                           },
                         ),
@@ -420,7 +415,7 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               Center(
                 child: Text(
-                  'Obsidian AI v1.0.0',
+                  'Zeno v1.0.0',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Theme.of(
                       context,
@@ -530,7 +525,7 @@ class SettingsScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Obsidian Pro ✦',
+                              'Zeno Pro ✦',
                               style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
                                     color: Colors.green,
@@ -641,7 +636,6 @@ class SettingsScreen extends ConsumerWidget {
     String currentName,
   ) {
     final controller = TextEditingController(text: currentName);
-    final messenger = ScaffoldMessenger.of(context);
 
     showDialog(
       context: context,
@@ -671,14 +665,12 @@ class SettingsScreen extends ConsumerWidget {
             onPressed: () async {
               final trimmedName = controller.text.trim();
 
-              if (trimmedName.isEmpty) {
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Display name cannot be empty.'),
-                  ),
-                );
-                return;
-              }
+                if (trimmedName.isEmpty) {
+                  ref.read(feedbackProvider.notifier).showMessage(
+                    'Display name cannot be empty.',
+                  );
+                  return;
+                }
 
               if (trimmedName == currentName.trim()) {
                 Navigator.pop(dialogContext);
@@ -695,20 +687,16 @@ class SettingsScreen extends ConsumerWidget {
                   Navigator.pop(dialogContext);
                 }
 
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Profile updated successfully.'),
-                  ),
+                ref.read(feedbackProvider.notifier).showMessage(
+                  'Profile updated successfully.',
                 );
               } on FirebaseAuthException catch (error) {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(error.message ?? 'Profile update failed.'),
-                  ),
+                ref.read(feedbackProvider.notifier).showError(
+                  ServiceFailure.fromAuth(error),
                 );
               } catch (_) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Profile update failed.')),
+                ref.read(feedbackProvider.notifier).showMessage(
+                  'Profile update failed.',
                 );
               }
             },

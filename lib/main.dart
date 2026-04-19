@@ -8,6 +8,7 @@ import 'core/services/notification_service.dart';
 import 'core/providers/providers.dart';
 import 'firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
 
 
@@ -82,7 +83,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     if (!_isFirebaseAvailable) {
       return MaterialApp(
-        title: 'Obsidian AI',
+        title: 'Zeno',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         home: Scaffold(
@@ -92,7 +93,7 @@ class _MyAppState extends State<MyApp> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 64),
+                  const Icon(LucideIcons.alertCircle, color: Colors.red, size: 64),
                   const SizedBox(height: 16),
                   const Text(
                     'Firebase Connection Error',
@@ -137,7 +138,7 @@ class _MyAppState extends State<MyApp> {
         }
 
         return MaterialApp(
-          title: 'Obsidian AI',
+          title: 'Zeno',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
@@ -158,7 +159,23 @@ class _MyAppState extends State<MyApp> {
             },
             loading: () => const Scaffold(
               body: Center(
-                child: CircularProgressIndicator(),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(LucideIcons.zap, size: 64, color: Colors.deepPurple),
+                    SizedBox(height: 16),
+                    Text(
+                      'Zeno',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    SizedBox(height: 24),
+                    CircularProgressIndicator(),
+                  ],
+                ),
               ),
             ),
             error: (e, st) => const LoginScreen(), // Fallback

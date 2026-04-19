@@ -88,9 +88,15 @@ dist/
 
 # Logs
 errors.txt
+build_log.txt
 *.log
 
 # Agent Skills & Temp Files
 .agents/
 .windsurf/
 skills-lock.json
+
+# Build checks
+aab_check/
+app_check.zip
+android/.kotlin/

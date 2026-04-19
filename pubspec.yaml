@@ -1,5 +1,5 @@
-name: ai_productivity_assistant
-description: "Obsidian AI — Personal productivity app with tasks, habits, Pomodoro timer, and AI assistant."
+name: zeno
+description: "Zeno - Your AI Productivity Coach"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -32,14 +32,11 @@ dependencies:
     sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
   flutter_riverpod: ^3.3.1
   google_generative_ai: ^0.4.7
   flutter_markdown: ^0.7.6+1
   lucide_icons: ^0.257.0
   animations: ^2.1.2
-  google_fonts: ^8.0.2
   table_calendar: ^3.2.0
   fl_chart: ^1.2.0
   intl: ^0.20.2
@@ -58,6 +55,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -105,4 +103,11 @@ flutter:
   #         weight: 700
   #
   # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
+  # flutter_launcher_icons configuration
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/app_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#0A0A0F"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"

@@ -441,7 +441,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                 ),
                 trailing: isSelected
                     ? Icon(
-                        Icons.check_circle,
+                        LucideIcons.checkCircle,
                         color: theme.colorScheme.primary,
                         size: 20,
                       )
@@ -509,7 +509,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                 ),
                 trailing: isSelected
                     ? Icon(
-                        Icons.check_circle,
+                        LucideIcons.checkCircle,
                         color: theme.colorScheme.primary,
                         size: 20,
                       )

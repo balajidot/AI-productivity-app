@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 class CelebrationOverlay {
   static void show(BuildContext context) {
@@ -78,7 +79,7 @@ class _CelebrationWidgetState extends State<_CelebrationWidget>
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3 * (1.0 - _controller.value).clamp(0.0, 1.0)),
                     ),
                     child: Icon(
-                      Icons.check_rounded,
+                      LucideIcons.checkCircle,
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: (1.0 - _controller.value).clamp(0.0, 1.0)),
                       size: 48,
                     ),

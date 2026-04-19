@@ -5,6 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../tasks/presentation/task_provider.dart';
 import '../../chat/presentation/chat_provider.dart';
+import '../../chat/presentation/feedback_provider.dart';
 import '../../settings/presentation/settings_provider.dart';
 import '../../chat/presentation/ai_suggestions_provider.dart';
 import '../../tasks/domain/task.dart';
@@ -125,7 +126,7 @@ class _HeaderSection extends ConsumerWidget {
           IconButton(
             onPressed: () {
               HapticFeedback.mediumImpact();
-              ref.read(chatProvider.notifier).sendMessage("Analyze my current day and suggest optimizations.").ignore();
+              ref.read(chatProvider.notifier).sendMessage("Analyze my current day and suggest optimizations.");
               ref.read(navigationProvider.notifier).set(3);
             },
             icon: Icon(LucideIcons.sparkles, color: theme.colorScheme.primary),
@@ -185,11 +186,18 @@ class _HeaderSection extends ConsumerWidget {
   }
 }
 
-class _PomodoroSection extends ConsumerWidget {
+class _PomodoroSection extends ConsumerStatefulWidget {
   const _PomodoroSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PomodoroSection> createState() => _PomodoroSectionState();
+}
+
+class _PomodoroSectionState extends ConsumerState<_PomodoroSection> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
     final pomodoro = ref.watch(pomodoroProvider);
     final notifier = ref.read(pomodoroProvider.notifier);
     final theme = Theme.of(context);
@@ -209,6 +217,12 @@ class _PomodoroSection extends ConsumerWidget {
       PomodoroPhase.longBreak => 'Long Break',
     };
 
+    final phaseIcon = switch (pomodoro.phase) {
+      PomodoroPhase.work => LucideIcons.timer,
+      PomodoroPhase.shortBreak => LucideIcons.coffee,
+      PomodoroPhase.longBreak => LucideIcons.flame,
+    };
+
     final sessionDots = List.generate(4, (i) {
       final filled = i < (pomodoro.sessionCount % 4);
       return Container(
@@ -225,8 +239,55 @@ class _PomodoroSection extends ConsumerWidget {
       );
     });
 
-    return Column(
+    final collapsedView = GestureDetector(
+      onTap: () => setState(() => _isExpanded = true),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Icon(phaseIcon, size: 16, color: theme.colorScheme.primary),
+            const SizedBox(width: 12),
+            Text(
+              pomodoro.timeDisplay,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.5,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              phaseLabel, 
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)
+            ),
+            const SizedBox(width: 8),
+            Icon(LucideIcons.chevronDown, size: 16, color: theme.colorScheme.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+
+    final expandedView = Column(
       children: [
+        GestureDetector(
+          onTap: () => setState(() => _isExpanded = false),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(LucideIcons.chevronUp, size: 16, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: 4),
+              Text(
+                'Collapse', 
+                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
         FocusHubWidget(
           progress: progress,
           label: pomodoro.timeDisplay,
@@ -264,6 +325,13 @@ class _PomodoroSection extends ConsumerWidget {
           ],
         ),
       ],
+    );
+
+    return AnimatedCrossFade(
+      duration: const Duration(milliseconds: 250),
+      crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+      firstChild: collapsedView,
+      secondChild: expandedView,
     );
   }
 }
@@ -312,9 +380,7 @@ class _AISuggestionsSection extends ConsumerWidget {
                       if (suggestion.action != null) {
                         ref.read(chatProvider.notifier).executeSyntheticAction(suggestion.action!);
                         ref.read(aiSuggestionsProvider.notifier).dismissSuggestion(suggestion.id);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Executing: ${suggestion.title}')),
-                        );
+                        ref.read(feedbackProvider.notifier).showMessage('Executing: ${suggestion.title}');
                       }
                     },
                     child: Container(

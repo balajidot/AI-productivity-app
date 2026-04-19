@@ -253,8 +253,13 @@ class _HabitTile extends ConsumerWidget {
       onDismissed: (_) {
         ref.read(habitsProvider.notifier).deleteHabit(habit.id);
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+      child: GestureDetector(
+        onLongPress: () {
+          HapticFeedback.mediumImpact();
+          _showEditHabitSheet(context, habit);
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: isDone
               ? Colors.green.withValues(alpha: 0.08)
@@ -319,12 +324,22 @@ class _HabitTile extends ConsumerWidget {
           trailing: habit.streak > 0
               ? _StreakBadge(streak: habit.streak)
               : null,
+          ),
         ),
       ),
     );
   }
 
   IconData _iconFromName(String name) => kHabitIcons[name] ?? LucideIcons.star;
+}
+
+void _showEditHabitSheet(BuildContext context, Habit habit) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (context) => AddHabitSheet(editHabit: habit),
+  );
 }
 
 class _WeekStrip extends StatelessWidget {
@@ -422,16 +437,24 @@ class _StreakBadge extends StatelessWidget {
 // ─── Add Habit Sheet ──────────────────────────────────────────────────────────
 
 class AddHabitSheet extends ConsumerStatefulWidget {
-  const AddHabitSheet({super.key});
+  final Habit? editHabit;
+  const AddHabitSheet({super.key, this.editHabit});
 
   @override
   ConsumerState<AddHabitSheet> createState() => _AddHabitSheetState();
 }
 
 class _AddHabitSheetState extends ConsumerState<AddHabitSheet> {
-  final _controller = TextEditingController();
-  String _selectedIcon = 'star';
+  late final TextEditingController _controller;
+  late String _selectedIcon;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.editHabit?.name);
+    _selectedIcon = widget.editHabit?.icon ?? 'star';
+  }
 
   // Reuses the shared kHabitIcons map defined at the top of this file
   static Map<String, IconData> get _icons => kHabitIcons;
@@ -446,13 +469,22 @@ class _AddHabitSheetState extends ConsumerState<AddHabitSheet> {
     final name = _controller.text.trim();
     if (name.isEmpty) return;
     setState(() => _submitting = true);
-    await ref.read(habitsProvider.notifier).addHabit(
-      Habit(
-        id: AppUtils.generateId(prefix: 'habit'),
+    
+    if (widget.editHabit != null) {
+      await ref.read(habitsProvider.notifier).updateHabit(
+        widget.editHabit!.id,
         name: name,
         icon: _selectedIcon,
-      ),
-    );
+      );
+    } else {
+      await ref.read(habitsProvider.notifier).addHabit(
+        Habit(
+          id: AppUtils.generateId(prefix: 'habit'),
+          name: name,
+          icon: _selectedIcon,
+        ),
+      );
+    }
     if (mounted) Navigator.pop(context);
   }
 
@@ -479,7 +511,7 @@ class _AddHabitSheetState extends ConsumerState<AddHabitSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            Text('New Habit', style: theme.textTheme.headlineSmall),
+            Text(widget.editHabit != null ? 'Edit Habit' : 'New Habit', style: theme.textTheme.headlineSmall),
             const SizedBox(height: 20),
             TextField(
               controller: _controller,
@@ -553,7 +585,7 @@ class _AddHabitSheetState extends ConsumerState<AddHabitSheet> {
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Add Habit'),
+                    : Text(widget.editHabit != null ? 'Save Changes' : 'Add Habit'),
               ),
             ),
           ],

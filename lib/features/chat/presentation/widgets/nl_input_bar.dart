@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../chat_provider.dart';
+import '../feedback_provider.dart';
 import '../../../tasks/presentation/task_provider.dart';
 
 class NaturalLanguageInputBar extends ConsumerStatefulWidget {
@@ -60,31 +61,12 @@ class _NaturalLanguageInputBarState
         _focusNode.unfocus();
 
         if (!mounted) return;
-        // Show success indicator briefly
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(
-                  LucideIcons.checkCircle,
-                  color: Colors.white,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Task added: ${parsedTask.title}')),
-              ],
-            ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.green.withValues(alpha: 0.8),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        // Show success indicator via feedbackProvider
+        ref.read(feedbackProvider.notifier).showMessage('Task added: ${parsedTask.title}');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to parse task: $e')));
+        ref.read(feedbackProvider.notifier).showError('Failed to add task. Please try again.');
       }
     } finally {
       if (mounted) {
@@ -125,8 +107,9 @@ class _NaturalLanguageInputBarState
               child: TextField(
                 controller: _controller,
                 focusNode: _focusNode,
+                onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'What needs to be done?',
+                  hintText: 'Ask Zeno or add a task...',
                   hintStyle: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant.withValues(
                       alpha: 0.5,

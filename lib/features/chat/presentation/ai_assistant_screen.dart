@@ -194,7 +194,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Obsidian AI - Online',
+                      'Zeno AI - Online',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -349,7 +349,25 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Row(
               children: [
-                const SizedBox(width: 12),
+                if (ref.watch(isPremiumProvider))
+                  IconButton(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => const GoalDecomposerSheet(),
+                      );
+                    },
+                    icon: const Icon(LucideIcons.target, size: 20),
+                    color: theme.colorScheme.primary,
+                    tooltip: 'Decompose a Goal',
+                    style: IconButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _controller,
@@ -442,9 +460,11 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
                   builder: (_) => const GoalDecomposerSheet(),
                 );
               } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PaywallScreen()),
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => const PaywallScreen(),
                 );
               }
             },
@@ -463,9 +483,11 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
               LucideIcons.crown,
               iconColor: Colors.amber,
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PaywallScreen()),
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => const PaywallScreen(),
                 );
               },
             ),

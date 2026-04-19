@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 
 class IntegrityService {
-  static const _channel = MethodChannel('com.obsidian.ai/integrity');
+  static const _channel = MethodChannel('com.yarzo.zeno/integrity');
   
   static Future<bool> verifyApp() async {
     try {

@@ -38,4 +38,14 @@ class ServiceFailure {
       originalError: e,
     );
   }
+
+  factory ServiceFailure.fromAuth(dynamic e) {
+    return ServiceFailure(
+      message: e.toString().contains('network-request-failed')
+          ? 'Network error. Please check your connection.'
+          : 'Authentication failed. Please try again.',
+      type: FailureType.auth,
+      originalError: e,
+    );
+  }
 }

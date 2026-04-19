@@ -154,7 +154,7 @@ class AIActionCard extends StatelessWidget {
       case AIActionType.deleteTasks:
         return 'Batch Delete';
       case AIActionType.suggestion:
-        return 'Obsidian Suggests';
+        return 'Zeno Suggests';
       default:
         return 'System Action';
     }

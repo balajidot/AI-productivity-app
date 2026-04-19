@@ -35,22 +35,26 @@ class HabitNotifier extends Notifier<List<Habit>> {
 
   int _calculateStreak(List<DateTime> dates) {
     if (dates.isEmpty) return 0;
-    final sorted = [...dates]..sort((a, b) => b.compareTo(a));
+    // Deduplicate dates first
+    final uniqueDates = dates
+        .map((d) => DateTime(d.year, d.month, d.day))
+        .toSet()
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
+    
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
     final yesterdayDate = todayDate.subtract(const Duration(days: 1));
     
-    final lastCompletion = DateTime(sorted[0].year, sorted[0].month, sorted[0].day);
-    if (lastCompletion.isBefore(yesterdayDate)) return 0;
+    if (uniqueDates.first.isBefore(yesterdayDate)) return 0;
     
     int streak = 0;
-    DateTime currentCheck = lastCompletion;
-    for (final date in sorted) {
-      final normalizedDate = DateTime(date.year, date.month, date.day);
-      if (normalizedDate == currentCheck) {
+    DateTime currentCheck = uniqueDates.first;
+    for (final date in uniqueDates) {
+      if (date == currentCheck) {
         streak++;
         currentCheck = currentCheck.subtract(const Duration(days: 1));
-      } else if (normalizedDate.isBefore(currentCheck)) {
+      } else if (date.isBefore(currentCheck)) {
         break;
       }
     }

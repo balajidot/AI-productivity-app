@@ -174,14 +174,21 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: [
-                  _buildNavItem(context, theme, index: 0, label: 'Home', icon: LucideIcons.home, selectedIndex: selectedIndex),
-                  _buildNavItem(context, theme, index: 1, label: 'Tasks', icon: LucideIcons.checkSquare, selectedIndex: selectedIndex),
-                  _buildNavItem(context, theme, index: 2, label: 'Schedule', icon: LucideIcons.calendar, selectedIndex: selectedIndex),
-                  _buildNavItem(context, theme, index: 3, label: 'AI', icon: LucideIcons.messageSquare, selectedIndex: selectedIndex),
-                  _buildNavItem(context, theme, index: 4, label: 'Habits', icon: LucideIcons.repeat, selectedIndex: selectedIndex),
-                  _buildNavItem(context, theme, index: 5, label: 'Insights', icon: LucideIcons.barChart2, selectedIndex: selectedIndex),
+                  _buildNavItem(context, theme, index: 0, label: 'Home',
+                      icon: LucideIcons.home, selectedIndex: selectedIndex),
+                  _buildNavItem(context, theme, index: 1, label: 'Tasks',
+                      icon: LucideIcons.checkSquare, selectedIndex: selectedIndex),
+                  _buildNavItem(context, theme, index: 2, label: 'Schedule',
+                      icon: LucideIcons.calendar, selectedIndex: selectedIndex),
+                  _buildNavItem(context, theme, index: 3, label: 'AI',
+                      icon: LucideIcons.messageSquare, selectedIndex: selectedIndex),
+                  _buildNavItem(context, theme, index: 4, label: 'Habits',
+                      icon: LucideIcons.repeat, selectedIndex: selectedIndex),
+                  _buildNavItem(context, theme, index: 5, label: 'Insights',
+                      icon: LucideIcons.barChart2, selectedIndex: selectedIndex),
                 ],
               ),
             ),
@@ -210,36 +217,36 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     required int selectedIndex,
   }) {
     final isSelected = index == selectedIndex;
-    final color = isSelected 
-        ? theme.colorScheme.primary 
+    final color = isSelected
+        ? theme.colorScheme.primary
         : theme.colorScheme.onSurfaceVariant;
 
     return InkWell(
-      onTap: () {
-        ref.read(navigationProvider.notifier).set(index);
-      },
-      // Keep surface clean with no splash behaviors to maintain minimal look
+      onTap: () => ref.read(navigationProvider.notifier).set(index),
       hoverColor: Colors.transparent,
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 72),
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        constraints: const BoxConstraints(minWidth: 72, maxWidth: 96),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              )
+            : null,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon, 
-              color: color, 
-              size: 24,
-            ),
-            const SizedBox(height: 6),
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 4),
             Text(
               label,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: color,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
           ],

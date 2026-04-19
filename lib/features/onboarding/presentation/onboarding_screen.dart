@@ -112,7 +112,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
           const SizedBox(height: 32),
           Text(
-            'Meet Obsidian AI',
+            'Meet Zeno',
             style: theme.textTheme.displayLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -276,28 +276,45 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
-      child: SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: FilledButton(
-          onPressed: canContinue ? _nextPage : null,
-          style: FilledButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: FilledButton(
+              onPressed: canContinue ? _nextPage : null,
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                _currentPage == 0 
+                    ? 'Get Started →' 
+                    : _currentPage == 1 
+                        ? 'Continue →' 
+                        : 'Start my journey →',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
-          child: Text(
-            _currentPage == 0 
-                ? 'Get Started →' 
-                : _currentPage == 1 
-                    ? 'Continue →' 
-                    : 'Start my journey →',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.onPrimary,
-              fontWeight: FontWeight.bold,
+          if (_currentPage == 1) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _nextPage,
+              child: Text(
+                'Skip for now',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
-          ),
-        ),
+          ],
+        ],
       ),
     );
   }

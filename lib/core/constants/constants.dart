@@ -9,13 +9,13 @@ class AppConstants {
   // Model Labels for UI
   static const Map<String, String> modelLabels = {
     autoModelId: 'Auto-Intelligence (Recommended)',
-    geminiModel: 'Obsidian Pro (Maximum Reasoning)',
-    geminiFlashModel: 'Obsidian Flash (Maximum Speed)',
+    geminiModel: 'Zeno Pro (Maximum Reasoning)',
+    geminiFlashModel: 'Zeno Flash (Maximum Speed)',
   };
 
   // System Prompts - Strategic & Nuanced
   static const String executiveAssistantPrompt = '''
-You are Obsidian Alpha, the ultimate Strategic Life Architect and Executive Partner.
+You are Zeno, the ultimate Strategic Life Architect and Executive Partner.
 Your intelligence is boundless, your reasoning is surgical, and your commitment to {USER_NAME}'s absolute success is unwavering.
 
 MISSION:
@@ -41,7 +41,7 @@ Remember: You are the power behind the throne. Engineering {USER_NAME}'s success
 ''';
 
   static const String routerPrompt =
-      "You are the Obsidian Orchestrator. Categorize input into: 'ACTION' (Task mutation), 'CHAT' (Social/Simple), or 'REASONING' (Strategic planning/Complex analysis). Response: ONE WORD ONLY.";
+      "You are the Zeno Orchestrator. Categorize input into: 'ACTION' (Task mutation), 'CHAT' (Social/Simple), or 'REASONING' (Strategic planning/Complex analysis). Response: ONE WORD ONLY.";
 
   // Default Categories
   static const List<String> taskCategories = [

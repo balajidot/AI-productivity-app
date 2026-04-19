@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
@@ -25,36 +24,78 @@ class AppTheme {
       ),
       
       // Typography
-      textTheme: TextTheme(
-        displayLarge: GoogleFonts.manrope(
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: AppColors.onSurface,
         ),
-        headlineLarge: GoogleFonts.manrope(
+        headlineLarge: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: AppColors.onSurface,
         ),
-        headlineMedium: GoogleFonts.manrope(
+        headlineMedium: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: AppColors.onSurface,
         ),
-        bodyLarge: GoogleFonts.inter(
+        bodyLarge: TextStyle(
           fontSize: 16,
           color: AppColors.onSurface,
           height: 1.5,
         ),
-        bodyMedium: GoogleFonts.inter(
+        bodyMedium: TextStyle(
           fontSize: 14,
           color: AppColors.onSurfaceVariant,
           height: 1.5,
         ),
-        labelLarge: GoogleFonts.inter(
+        labelLarge: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: AppColors.onSurface,
+        ),
+        displaySmall: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: AppColors.onSurface,
+          letterSpacing: -0.5,
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.onSurface,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.onSurface,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: AppColors.onSurface,
+        ),
+        titleSmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: AppColors.onSurface,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: AppColors.onSurfaceVariant,
+          letterSpacing: 0.5,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: AppColors.onSurfaceVariant,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          color: AppColors.onSurfaceVariant,
+          height: 1.4,
         ),
       ),
       
@@ -79,7 +120,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.primary, width: 1),
         ),
-        hintStyle: GoogleFonts.inter(
+        hintStyle: const TextStyle(
           color: AppColors.onSurfaceVariant,
           fontSize: 14,
         ),
@@ -92,13 +133,13 @@ class AppTheme {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.inter(
+            return const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.primary,
             );
           }
-          return GoogleFonts.inter(
+          return const TextStyle(
             fontSize: 12,
             color: AppColors.onSurfaceVariant,
           );
@@ -108,12 +149,12 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surfaceContainer,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: GoogleFonts.manrope(
+        titleTextStyle: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
           color: AppColors.onSurface,
         ),
-        contentTextStyle: GoogleFonts.inter(
+        contentTextStyle: const TextStyle(
           fontSize: 14,
           color: AppColors.onSurfaceVariant,
         ),
@@ -153,36 +194,78 @@ class AppTheme {
         outlineVariant: AppColors.lightOutlineVariant,
       ),
       
-      textTheme: TextTheme(
-        displayLarge: GoogleFonts.manrope(
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: AppColors.lightOnSurface,
         ),
-        headlineLarge: GoogleFonts.manrope(
+        headlineLarge: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: AppColors.lightOnSurface,
         ),
-        headlineMedium: GoogleFonts.manrope(
+        headlineMedium: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: AppColors.lightOnSurface,
         ),
-        bodyLarge: GoogleFonts.inter(
+        bodyLarge: TextStyle(
           fontSize: 16,
           color: AppColors.lightOnSurface,
           height: 1.5,
         ),
-        bodyMedium: GoogleFonts.inter(
+        bodyMedium: TextStyle(
           fontSize: 14,
           color: AppColors.lightOnSurfaceVariant,
           height: 1.5,
         ),
-        labelLarge: GoogleFonts.inter(
+        labelLarge: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: AppColors.lightOnSurface,
+        ),
+        displaySmall: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: AppColors.lightOnSurface,
+          letterSpacing: -0.5,
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.lightOnSurface,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.lightOnSurface,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: AppColors.lightOnSurface,
+        ),
+        titleSmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: AppColors.lightOnSurface,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: AppColors.lightOnSurfaceVariant,
+          letterSpacing: 0.5,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: AppColors.lightOnSurfaceVariant,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          color: AppColors.lightOnSurfaceVariant,
+          height: 1.4,
         ),
       ),
       
@@ -209,7 +292,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: AppColors.lightPrimary, width: 1),
         ),
-        hintStyle: GoogleFonts.inter(
+        hintStyle: const TextStyle(
           color: AppColors.lightOnSurfaceVariant,
           fontSize: 14,
         ),
@@ -221,13 +304,13 @@ class AppTheme {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.inter(
+            return const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.lightPrimary,
             );
           }
-          return GoogleFonts.inter(
+          return const TextStyle(
             fontSize: 12,
             color: AppColors.lightOnSurfaceVariant,
           );
@@ -237,12 +320,12 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.lightSurface,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: GoogleFonts.manrope(
+        titleTextStyle: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
           color: AppColors.lightOnSurface,
         ),
-        contentTextStyle: GoogleFonts.inter(
+        contentTextStyle: const TextStyle(
           fontSize: 14,
           color: AppColors.lightOnSurfaceVariant,
         ),

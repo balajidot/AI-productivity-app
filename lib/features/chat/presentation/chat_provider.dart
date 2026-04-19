@@ -79,7 +79,7 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
 
     ref.read(aiLoadingProvider.notifier).set(true);
     final aiMsgId = AppUtils.generateId(prefix: 'ai');
-    const String placeholder = 'Obsidian is thinking deeper...';
+    const String placeholder = 'Zeno is thinking...';
 
     state = [
       ...state,
@@ -345,7 +345,7 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
         }
         break;
       case AIActionType.suggestion:
-        sendMessage("[Chosen: ${p['label']}] ${p['value']}").ignore();
+        sendMessage("[Chosen: ${p['label']}] ${p['value']}");
         break;
       case AIActionType.deleteRecord:
       case AIActionType.generateVisual:

@@ -123,7 +123,11 @@ class FirestoreService {
       _db.collection('users').doc(uid).collection('messages');
 
   Stream<List<AIMessage>> getMessages() {
-    return _messagesRef.orderBy('timestamp', descending: false).snapshots().map((snapshot) {
+    return _messagesRef
+        .orderBy('timestamp', descending: false)
+        .limitToLast(100)
+        .snapshots()
+        .map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>?;
         if (data == null) return null;

@@ -25,6 +25,13 @@ class AIService {
   // Track active futures to deduplicate parallel identical requests
   final Map<String, Future<dynamic>> _activeRequests = {};
 
+  void _addToCache(String key, dynamic value) {
+    if (_cache.length >= 50) {
+      _cache.remove(_cache.keys.first);
+    }
+    _cache[key] = value;
+  }
+
   AIService({this.geminiApiKey, this.nvidiaApiKey, this.groqApiKey});
 
   String get _systemPrompt => AppConstants.executiveAssistantPrompt;
@@ -188,12 +195,12 @@ class AIService {
       final complexity = await _detectComplexity(prompt);
       if (complexity == 'REASONING') {
         effectiveModelId = AppConstants.geminiModel;
-        assignedModelName = 'Obsidian Pro (Strategic)';
+        assignedModelName = 'Zeno Pro (Strategic)';
       } else {
         effectiveModelId = AppConstants.geminiFlashModel;
         assignedModelName = (complexity == 'ACTION')
-            ? 'Obsidian Flash (Action Mode)'
-            : 'Obsidian Flash (Chat Mode)';
+            ? 'Zeno Flash (Action Mode)'
+            : 'Zeno Flash (Chat Mode)';
       }
     }
 
@@ -259,16 +266,19 @@ class AIService {
 
         // Cache final result if complete
         if (candidate.finishReason == FinishReason.stop) {
-          _cache[cacheKey] = result;
+          _addToCache(cacheKey, result);
         }
 
         yield result;
       }
     } catch (e) {
       debugPrint('Chat Stream Error: $e');
-      yield ChatResult(
-        text: "Connection error: $e. Please check your internet.",
-      );
+      final errorMsg = e.toString().contains('SocketException') || 
+                       e.toString().contains('network') ||
+                       e.toString().contains('HttpException')
+          ? "No internet connection. Please check your network."
+          : "Something went wrong. Please try again.";
+      yield ChatResult(text: errorMsg);
     }
   }
 
@@ -335,8 +345,8 @@ class AIService {
   }
 
   String _getFriendlyName(String modelId) {
-    if (modelId.contains('pro')) return 'Obsidian Pro';
-    return 'Obsidian Flash';
+    if (modelId.contains('pro')) return 'Zeno Pro';
+    return 'Zeno Flash';
   }
 
   Future<Task?> parseTaskFromNaturalLanguage(String text) async {
@@ -375,7 +385,7 @@ class AIService {
           category: data['category'] ?? 'Inbox',
         );
 
-        _cache[cacheKey] = task;
+        _addToCache(cacheKey, task);
         return task;
       } catch (e) {
         debugPrint('AI Task Parsing Error: $e');
@@ -411,7 +421,7 @@ class AIService {
     final future = _withRetry(() async {
       try {
         final prompt = '''
-You are Obsidian Alpha, an elite productivity companion. Provide a concise, highly motivating 2-sentence summary based on this week's metrics.
+You are Zeno Alpha, an elite productivity companion. Provide a concise, highly motivating 2-sentence summary based on this week's metrics.
 Metrics:
 - Total Focus Hours: ${metrics['totalHours'] ?? 0}
 - Efficiency Growth (compared to last week): ${metrics['growth'] ?? 0}%
@@ -427,7 +437,7 @@ Rules:
         final response = await model.generateContent([Content.text(prompt)]);
         
         final result = response.text?.trim() ?? "Productivity patterns look stable. Keep executing.";
-        _cache[cacheKey] = result;
+        _addToCache(cacheKey, result);
         return result;
       } catch (e) {
         debugPrint('AI Summary Error: $e');

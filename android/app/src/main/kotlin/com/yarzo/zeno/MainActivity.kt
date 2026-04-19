@@ -1,4 +1,4 @@
-package com.balaji.obsidianai
+package com.yarzo.zeno
 
 import io.flutter.embedding.android.FlutterActivity
 
