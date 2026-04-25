@@ -24,48 +24,115 @@
 
 ## CURRENT TASK
 **Status:** COMPLETED
-**ID:** BRIDGE-022
+**ID:** BRIDGE-023
 
 ---
 
-### TASK: Subscription Expiry Auto-Revoke & Doc Cleanup
+### TASK: Firestore Security Rules
 
-**Step 0 -- Context:**
-The app currently checks subscription expiry locally but doesn't sync the "expired" state back to Firestore. We need to ensure that if a user's plan has expired, Firestore is updated to `isPremium: false`. Also, some documentation still refers to "Obsidian AI" instead of "Zeno".
+**Context:**
+The app is going to production. The current Firestore rules are likely open (allow read, write: if true) or default test rules. This is a critical security fix before Play Store submission. We need to lock down all Firestore data so only authenticated users can access their own documents.
 
----
-
-## STEP 1 -- Update FirestoreService
-
-Add `revokePremiumStatus()` to `lib/core/services/firestore_service.dart`.
-
----
-
-## STEP 2 -- Update SubscriptionNotifier
-
-In `lib/features/settings/presentation/subscription_provider.dart`, inside `_init()`, detect if `isPremium` is true but `expiryDate` is in the past. If so, call `revokePremiumStatus()` and update local state.
+The data structure is:
+- `users/{uid}` — user profile document (isPremium, displayName, expiryDate)
+- `users/{uid}/tasks/{taskId}` — tasks subcollection
+- `users/{uid}/habits/{habitId}` — habits subcollection
+- `users/{uid}/messages/{messageId}` — AI chat messages subcollection
 
 ---
 
-## STEP 3 -- Documentation Cleanup
+## STEP 1 -- Create firestore.rules file
 
-Replace all "Obsidian AI" occurrences with "Zeno" in:
-- `Gemini.md`
-- `CLAUDE.md`
+Create the file `firestore.rules` at the project root with this exact content:
+
+```
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Block all access by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User profile document
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // Tasks subcollection
+      match /tasks/{taskId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // Habits subcollection
+      match /habits/{habitId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // AI Chat messages subcollection
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+  }
+}
+```
 
 ---
 
-## STEP 4 -- Verification
+## STEP 2 -- Create firebase.json if missing
 
-1. Run `flutter analyze`.
-2. Verify logic via code review (cannot test IAP expiry easily in this environment).
+Check if `firebase.json` exists at the project root.
+
+If it does NOT exist, create it:
+
+```json
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
+```
+
+If `firestore.indexes.json` does NOT exist, create it too:
+
+```json
+{
+  "indexes": [],
+  "fieldOverrides": []
+}
+```
+
+---
+
+## STEP 3 -- Attempt deploy via Firebase CLI
+
+Run:
+```powershell
+firebase deploy --only firestore:rules
+```
+
+If this succeeds: record "CLI deploy: SUCCESS" in the RESULT section.
+
+If this fails with "not logged in" or "project not found": record the exact error message in RESULT. Do NOT attempt to fix auth issues — the user will deploy manually via Firebase Console.
+
+---
+
+## STEP 4 -- Verify rules file is complete
+
+Read the `firestore.rules` file back and confirm:
+1. Default deny rule exists (`allow read, write: if false`)
+2. All 4 paths covered: users/{uid}, tasks, habits, messages
+3. All rules check `request.auth.uid == uid`
 
 ---
 
 ## RESULT
 **Status:** COMPLETED
-- FirestoreService updated: YES
-- SubscriptionNotifier updated: YES
-- Docs cleaned up: YES
-- flutter analyze: 0 issues
-
+- firestore.rules created: YES ( granular per-user access )
+- firebase.json exists/created: YES ( existing verified )
+- CLI deploy: SUCCESS ( Deploy complete to obsidian-ai-c8836 )
+- Rules verification: SUCCESS ( default deny + 4 specific paths verified )
+- Notes: Security locked down for production.

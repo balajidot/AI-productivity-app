@@ -195,3 +195,4 @@
 | 20:50 | Antigravity | ✅ | flutter analyze — **0 issues** | — |
 | 19:50 | Antigravity | 📦 | **BRIDGE-021**: Final Production Build Success. APK: 23.8MB (arm64), AAB: 48.7MB. Obfuscation & Security fixes included. | `app-release.apk`, `app-release.aab` |
 | 21:05 | Antigravity | 🔧 | **BRIDGE-022**: Subscription Expiry Auto-Revoke (Firestore sync) + Doc Cleanup (Obsidian AI -> Zeno) | `firestore_service.dart`, `subscription_provider.dart`, `Gemini.md`, `CLAUDE.md` |
+| 21:15 | Antigravity | 🛡️ | **BRIDGE-023**: Production Firestore Security Rules (Per-user lockdown) | `firestore.rules`, `firebase.json` |

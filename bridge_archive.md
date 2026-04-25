@@ -90,3 +90,13 @@ atural_language_parser.dart.
 - Obfuscation and split-debug-info enabled.
 - All API keys injected via dart-define.
 - Verification: APK is ready for deployment.
+
+---
+
+## BRIDGE-022 -- Subscription Expiry Auto-Revoke & Doc Cleanup
+**Status:** DONE
+- STEP 1: Added revokePremiumStatus() to firestore_service.dart.
+- STEP 2: SubscriptionNotifier detects expired plan and updates Firestore.
+- STEP 3: Rebranded "Obsidian AI" to "Zeno" in Gemini.md and CLAUDE.md.
+- flutter analyze: 0 issues.
+- Git Backup: Successful push to origin main.
