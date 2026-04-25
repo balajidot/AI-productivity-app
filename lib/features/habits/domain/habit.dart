@@ -6,6 +6,9 @@ class Habit {
   final String icon;
   final int streak;
   final List<DateTime> completedDates;
+  /// Pro feature: Dates where the user applied a Streak Freeze token.
+  /// These count as "present" in streak calculation so the streak isn't broken.
+  final List<DateTime> frozenDates;
 
   Habit({
     required this.id,
@@ -13,6 +16,7 @@ class Habit {
     required this.icon,
     this.streak = 0,
     this.completedDates = const [],
+    this.frozenDates = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -22,6 +26,7 @@ class Habit {
       'icon': icon,
       'streak': streak,
       'completedDates': completedDates.map((d) => d.toIso8601String()).toList(),
+      'frozenDates': frozenDates.map((d) => d.toIso8601String()).toList(),
     };
   }
 
@@ -31,6 +36,7 @@ class Habit {
     String? icon,
     int? streak,
     List<DateTime>? completedDates,
+    List<DateTime>? frozenDates,
   }) {
     return Habit(
       id: id ?? this.id,
@@ -38,28 +44,29 @@ class Habit {
       icon: icon ?? this.icon,
       streak: streak ?? this.streak,
       completedDates: completedDates ?? this.completedDates,
+      frozenDates: frozenDates ?? this.frozenDates,
     );
   }
 
   factory Habit.fromMap(Map<String, dynamic> map) {
-    List<DateTime> dates = [];
-    final rawDates = map['completedDates'];
-
-    if (rawDates is List) {
-      dates = rawDates
-          .map((s) {
-            if (s is DateTime) return s;
-            if (s is Timestamp) return s.toDate();
-            return DateTime.tryParse(s.toString());
-          })
-          .whereType<DateTime>()
-          .toList();
-    } else if (rawDates is String && rawDates.isNotEmpty) {
-      dates = rawDates
-          .split(',')
-          .map((s) => DateTime.tryParse(s))
-          .whereType<DateTime>()
-          .toList();
+    List<DateTime> parseDates(dynamic raw) {
+      if (raw is List) {
+        return raw
+            .map((s) {
+              if (s is DateTime) return s;
+              if (s is Timestamp) return s.toDate();
+              return DateTime.tryParse(s.toString());
+            })
+            .whereType<DateTime>()
+            .toList();
+      } else if (raw is String && raw.isNotEmpty) {
+        return raw
+            .split(',')
+            .map((s) => DateTime.tryParse(s))
+            .whereType<DateTime>()
+            .toList();
+      }
+      return [];
     }
 
     return Habit(
@@ -67,7 +74,8 @@ class Habit {
       name: map['name']?.toString() ?? 'New Habit',
       icon: map['icon']?.toString() ?? 'star',
       streak: (map['streak'] as num?)?.toInt() ?? 0,
-      completedDates: dates,
+      completedDates: parseDates(map['completedDates']),
+      frozenDates: parseDates(map['frozenDates']),
     );
   }
 
@@ -75,6 +83,14 @@ class Habit {
     if (completedDates.isEmpty) return false;
     final now = DateTime.now();
     return completedDates.any(
+      (d) => d.year == now.year && d.month == now.month && d.day == now.day,
+    );
+  }
+
+  bool get frozenToday {
+    if (frozenDates.isEmpty) return false;
+    final now = DateTime.now();
+    return frozenDates.any(
       (d) => d.year == now.year && d.month == now.month && d.day == now.day,
     );
   }

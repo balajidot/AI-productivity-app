@@ -158,8 +158,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       body: IndexedStack(index: selectedIndex, children: _screens),
       bottomNavigationBar: SizedBox(
         height: 80, // Explicit height to fix body calculation bug
-        child: ClipRect(
-          child: Container(
+        child: Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             border: Border(
@@ -195,7 +194,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           ),
         ),
       ),
-    ),
       floatingActionButton: (isAiTab || isInsightsTab)
           ? null
           : FloatingActionButton(

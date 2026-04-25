@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../../features/tasks/domain/task.dart';
 import '../../../core/utils/app_utils.dart';
+import '../../../core/constants/constants.dart';
 
 class WeeklyReport {
   final int score;
@@ -47,13 +48,13 @@ Generate a JSON response exactly like this:
     {"title": "task title", "category": "Personal", "priority": 1}
   ]
 }
-Score calculation: base 50 + (tasksCompleted/totalTasks * 25) + (habitsCompleted/totalHabits * 25). Max 100.
+Score calculation: base 50 + (totalTasks>0 ? tasksCompleted/totalTasks * 25 : 0) + (totalHabits>0 ? habitsCompleted/totalHabits * 25 : 0). Max 100.
 Keep all text concise, actionable, encouraging. English only.
 Return ONLY the JSON, no other text.
 """;
 
     final model = GenerativeModel(
-      model: 'gemini-1.5-flash-latest',
+      model: AppConstants.geminiFlashModel,
       apiKey: geminiApiKey,
     );
     

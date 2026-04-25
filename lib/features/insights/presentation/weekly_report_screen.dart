@@ -94,24 +94,62 @@ class _WeeklyReportScreenState extends ConsumerState<WeeklyReportScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Weekly Insight'),
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.rotateCcw),
-            onPressed: () {
-              setState(() {
-                _isLoading = true;
-                _error = null;
-              });
-              _generateReport();
-            },
-          ),
-        ],
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      body: _buildBody(theme),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            // Drag handle
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            // Header row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 12, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Weekly Insight',
+                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(LucideIcons.rotateCcw),
+                    color: theme.colorScheme.onSurfaceVariant,
+                    onPressed: () {
+                      setState(() {
+                        _isLoading = true;
+                        _error = null;
+                      });
+                      _generateReport();
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(LucideIcons.x),
+                    color: theme.colorScheme.onSurfaceVariant,
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: _buildBody(theme)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -285,7 +323,7 @@ class _WeeklyReportScreenState extends ConsumerState<WeeklyReportScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('•', style: TextStyle(color: accent, fontWeight: FontWeight.bold, fontSize: 18)),
+              Text('•', style: theme.textTheme.titleLarge?.copyWith(color: accent, fontWeight: FontWeight.bold)),
               const SizedBox(width: 12),
               Expanded(child: Text(p, style: theme.textTheme.bodyMedium)),
             ],
@@ -301,9 +339,9 @@ class _WeeklyReportScreenState extends ConsumerState<WeeklyReportScreen> {
       children: [
         Row(
           children: [
-            Icon(LucideIcons.list, color: Colors.blue, size: 20),
-            SizedBox(width: 8),
-            Text('Next week\'s action plan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Icon(LucideIcons.list, color: theme.colorScheme.primary, size: 20),
+            const SizedBox(width: 8),
+            Text('Next week\'s action plan', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 16),
@@ -325,7 +363,7 @@ class _WeeklyReportScreenState extends ConsumerState<WeeklyReportScreen> {
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text(t.category, style: TextStyle(fontSize: 10, color: theme.colorScheme.primary)),
+                child: Text(t.category, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary)),
               ),
             ],
           ),

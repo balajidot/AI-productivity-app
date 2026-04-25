@@ -16,6 +16,8 @@ import '../../focus/presentation/pomodoro_provider.dart';
 import '../../chat/presentation/widgets/nl_input_bar.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../tasks/presentation/widgets/quick_add_task_sheet.dart';
+import '../../../core/utils/service_failure.dart';
+import 'morning_briefing_service.dart';
 
 
 class HomeScreen extends ConsumerWidget {
@@ -45,6 +47,8 @@ class _HomeBody extends ConsumerWidget {
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               const _HeaderSection(),
+              const SizedBox(height: 16),
+              const _MorningBriefingSection(),
               const SizedBox(height: 16),
               const NaturalLanguageInputBar(),
               const SizedBox(height: 24),
@@ -126,7 +130,13 @@ class _HeaderSection extends ConsumerWidget {
           IconButton(
             onPressed: () {
               HapticFeedback.mediumImpact();
-              ref.read(chatProvider.notifier).sendMessage("Analyze my current day and suggest optimizations.");
+              ref.read(chatProvider.notifier).sendMessage(
+                "Analyze my current day and suggest optimizations.",
+              ).catchError((e) {
+                ref.read(feedbackProvider.notifier).showError(
+                  ServiceFailure(message: 'AI request failed. Please try again.'),
+                );
+              });
               ref.read(navigationProvider.notifier).set(3);
             },
             icon: Icon(LucideIcons.sparkles, color: theme.colorScheme.primary),
@@ -139,9 +149,12 @@ class _HeaderSection extends ConsumerWidget {
           const SizedBox(width: 12),
           GestureDetector(
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              HapticFeedback.mediumImpact();
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => const SettingsScreen(),
               );
             },
             child: Hero(
@@ -199,14 +212,15 @@ class _PomodoroSectionState extends ConsumerState<_PomodoroSection> {
   @override
   Widget build(BuildContext context) {
     final pomodoro = ref.watch(pomodoroProvider);
+    final settings = ref.watch(appSettingsProvider);
     final notifier = ref.read(pomodoroProvider.notifier);
     final theme = Theme.of(context);
 
     final totalSeconds = pomodoro.phase == PomodoroPhase.work
-        ? ref.read(appSettingsProvider).pomodoroDuration * 60
+        ? settings.pomodoroDuration * 60
         : pomodoro.phase == PomodoroPhase.shortBreak
-            ? ref.read(appSettingsProvider).shortBreakDuration * 60
-            : ref.read(appSettingsProvider).longBreakDuration * 60;
+            ? settings.shortBreakDuration * 60
+            : settings.longBreakDuration * 60;
     final progress = totalSeconds > 0
         ? 1.0 - pomodoro.secondsRemaining / totalSeconds
         : 0.0;
@@ -400,7 +414,7 @@ class _AISuggestionsSection extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
-                              suggestion.icon as IconData? ?? LucideIcons.zap,
+                              suggestion.icon ?? LucideIcons.zap,
                               color: theme.colorScheme.primary,
                               size: 16,
                             ),
@@ -750,6 +764,101 @@ class _EmptyTodayState extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─── AI Morning Briefing Widget ──────────────────────────────────────────────
+
+class _MorningBriefingSection extends ConsumerWidget {
+  const _MorningBriefingSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPremium = ref.watch(isPremiumProvider);
+    if (!isPremium) return const SizedBox.shrink();
+
+    final briefing = ref.watch(morningBriefingProvider);
+    final theme = Theme.of(context);
+
+    return briefing.when(
+      data: (text) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.colorScheme.primary.withValues(alpha: 0.15),
+                theme.colorScheme.tertiary.withValues(alpha: 0.15),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      LucideIcons.sparkles,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'YOUR MORNING BRIEFING',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => ref.refresh(morningBriefingProvider),
+                    icon: const Icon(LucideIcons.rotateCcw, size: 14),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'Refresh Briefing',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                text,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  height: 1.6,
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => Container(
+        height: 120,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }

@@ -12,24 +12,26 @@
 | :--- | :---: | :---: |
 | Auth — Google Sign-In | ✅ Done | 🟢 High |
 | Task CRUD + Calendar | ✅ Done | 🟢 High |
-| AI Chat — Flash/Pro routing | ✅ Done | 🟡 Medium |
+| AI Chat — Flash/Pro routing | ✅ Done | 🟢 High |
 | Goal Decomposer | ✅ Done | 🟡 Medium |
 | Pomodoro Focus Timer | ✅ Done | 🟢 High |
-| Pomodoro Focus Timer | 100% | 🟢 High |
-| Habits + Streak | 100% | 🟢 High |
-| Insights + FL Charts | 100% | 🟢 High |
+| Habits + Streak | ✅ Done | 🟢 High |
+| Insights + FL Charts | ✅ Done | 🟢 High |
 | Weekly AI Report | ✅ Done | 🟡 Medium |
 | Hide Completed Tasks | ✅ Done | 🟢 High |
-| Subscription IAP | ✅ Done | 🟡 Medium |
+| Subscription IAP | ✅ Done | 🟢 High |
 | App Signing + ProGuard | ✅ Done | 🟢 High |
-| AAB Build | 100% | 🟢 High |
-| Onboarding Screen | 100% | 🟢 High |
+| AAB Build | ✅ Done | 🟢 High |
+| Onboarding Screen | ✅ Done | 🟢 High |
 | Premium Empty States | ✅ Done | 🟢 High |
 | Premium Visibility UI | ✅ Done | 🟢 High |
 | App Logo | ✅ Done | 🟢 High |
 | Play Console Setup | 🔲 Todo | — |
-| Real Device Testing | ✅ Done | 🟡 Medium |
+| Real Device Testing | ✅ Done | 🟢 High |
 | Subscription Expiry Check | ✅ Done | 🟢 High |
+| Deep Bug Audit + Fix | ✅ Done | 🟢 High |
+| Tasks UI (Pill Redesign) | ✅ Done | 🟢 High |
+| Production APK | ✅ Done | 🟢 High |
 
 ---
 
@@ -135,3 +137,55 @@
 | 22:20 | Antigravity | 🎨 | BRIDGE-014: Fixed Lucide icon violations in calendar/celebration, completed light theme text styles | `calendar_screen.dart`, `app_theme.dart` |
 | 22:25 | Antigravity | ✅ | flutter analyze — clean | — |
 | 22:30 | Antigravity | 🚀 | Git Push: Main branch updated (Redacted secrets) | — |
+| 22:45 | Antigravity | 🔧 | BRIDGE-015: Completed production navigation, async handling, and reactive build patterns | `home_screen.dart`, `settings_screen.dart`, `ai_assistant_screen.dart` |
+| 22:50 | Antigravity | ✅ | flutter analyze — clean | — |
+| 22:55 | Antigravity | 🔬 | DEEP AUDIT: Scanned all providers, domain models, screens — 22 bugs found across 4 severity levels | `deep_audit.md` |
+| 23:00 | Antigravity | 🐛 | **FIX C1**: `SubscriptionNotifier.build()` — moved `_init()` to `Future.microtask()` | `subscription_provider.dart` |
+| 23:01 | Antigravity | 🐛 | **FIX C2**: `PomodoroNotifier` — added `_isLifecycleInit` guard to stop stacked `dispose()` calls | `pomodoro_provider.dart` |
+| 23:02 | Antigravity | 🐛 | **FIX C4**: `clearChat()` — optimistically clears UI state before awaiting Firestore | `chat_provider.dart` |
+| 23:03 | Antigravity | 🐛 | **FIX H1**: `TaskNotifier.refresh()` — resets `_isInit` so build() can re-trigger initial fetch | `task_provider.dart` |
+| 23:04 | Antigravity | 🐛 | **FIX H2**: `suggestion` AIAction — `sendMessage()` is now awaited (prevents race with _markActionExecuted) | `chat_provider.dart` |
+| 23:05 | Antigravity | 🐛 | **FIX H3**: `HabitNotifier` — `_isMutating` guard added to all write methods; stream cannot overwrite optimistic state | `habit_provider.dart` |
+| 23:06 | Antigravity | 🐛 | **FIX H5**: `PaywallScreen` — removed nested `Scaffold`/`AppBar`; replaced with BottomSheet-safe `Container` layout | `paywall_screen.dart` |
+| 23:07 | Antigravity | 🐛 | **FIX H6**: `SubscriptionState.copyWith()` — sentinel pattern added so `error` field can be cleared to `null` | `subscription_provider.dart` |
+| 23:08 | Antigravity | 🐛 | **FIX H7**: `PomodoroNotifier._onPhaseComplete()` — `updatedTask` captured in local var; second state uses same reference | `pomodoro_provider.dart` |
+| 23:09 | Antigravity | 🐛 | **FIX M2**: `Task.copyWith()` — added `clearTime`, `clearDescription`, `clearRecurrence` booleans for nullifying optional fields | `task.dart` |
+| 23:10 | Antigravity | 🐛 | **FIX M6**: `AuthService.signOut()` — clears `onboarding_complete` pref so new user sees onboarding | `auth_service.dart` |
+| 23:12 | Antigravity | ✅ | flutter analyze — **0 issues** (after 10 bug fixes across 7 files) | — |
+| 23:25 | Antigravity | 🔬 | Pro Monetization Research: Web search — real-world data from Todoist, Notion, Habitica, Duolingo, RevenueCat | — |
+| 23:30 | Antigravity | ✨ | **PRO FEAT 1**: AI Message Limit — 15 messages/day for free users, resets midnight, Pro bypassed | `ai_usage_provider.dart` [NEW] |
+| 23:35 | Antigravity | ✨ | **PRO FEAT 2**: Habit Streak Freeze — 3 tokens/month, `frozenDates` in Habit model, freezeStreak() in HabitNotifier | `habit.dart`, `habit_provider.dart`, `streak_freeze_provider.dart` [NEW] |
+| 23:40 | Antigravity | ✨ | **PRO FEAT 3**: AI Morning Briefing — Gemini Flash generates personalized 8AM daily push notification | `morning_briefing_service.dart` [NEW] |
+| 23:42 | Antigravity | ✨ | Added `isPremiumProvider` convenience derived Provider to `settings_provider.dart` | `settings_provider.dart` |
+| 23:45 | Antigravity | ✅ | flutter analyze — **0 issues** (3 Pro features, 5 new files) | — |
+| 23:55 | Antigravity | ✨ | **UI WIRE**: AI Message Limit — Added usage counter pill, limit warning banner, and paywall gating | `ai_assistant_screen.dart` |
+| 23:57 | Antigravity | ✨ | **UI WIRE**: Streak Freeze — Added monthly token bar, freeze button, and snowflake streak badges | `habits_screen.dart` |
+| 23:59 | Antigravity | ✨ | **UI WIRE**: Morning Briefing — Added premium AI briefing card to Home screen | `home_screen.dart` |
+| 00:05 | Antigravity | ✅ | Final Audit — All Pro features verified and zero analysis issues | — |
+| 23:11 | Antigravity | 🐛 | **FIX**: NL Input Bar usage gating + Habit Token refund logic | `nl_input_bar.dart`, `habit_provider.dart` |
+| 23:12 | Antigravity | 🎨 | **UI**: Tasks Screen redesign — Pill-shaped categories & premium search bar | `tasks_screen.dart` |
+| 23:15 | Antigravity | 📦 | **BUILD**: Release APK successfully generated (63.5MB) | `app-release.apk` |
+| 23:20 | Antigravity | ✅ | flutter analyze — **0 issues** | — |
+
+### 2026-04-20
+
+| Time | Agent | Type | Change | Files |
+| :--- | :--- | :--- | :--- | :--- |
+| 03:50 | Antigravity | 🔧 | **BRIDGE-016**: Navigation Rule Fix (Rule 9) — WeeklyReport as BottomSheet | `insights_screen.dart` |
+| 03:55 | Antigravity | 🐛 | **BUG-38**: Login Error Feedback — switched from showDialog to feedbackProvider | `login_screen.dart` |
+| 03:56 | Antigravity | 🔧 | **BUG-39**: NL Input Bar Send Button — disabled when text field is empty | `nl_input_bar.dart` |
+| 03:57 | Antigravity | ⚡ | **BUG-40**: AI Context-Awareness — removed chat result caching from getChatStream | `ai_service.dart` |
+| 03:58 | Antigravity | 🐛 | **BUG-41**: Goal Decomposer Feedback — added error feedback for empty AI results | `goal_decomposer_sheet.dart` |
+| 03:59 | Antigravity | ✅ | flutter analyze — **0 issues** | — |
+| 04:12 | Antigravity | 🔧 | **BRIDGE-017**: 6 UI/UX fixes: Recurrence guard, ClipRect removal, Button disabling, Swipe feedback, and Icon casts. | `task_provider.dart`, `main_navigation.dart`, `quick_add_task_sheet.dart`, `habits_screen.dart`, `task_card.dart`, `home_screen.dart` |
+| 04:15 | Antigravity | ✅ | flutter analyze — **0 issues** | — |
+| 04:25 | Antigravity | 🔧 | **BRIDGE-018**: Settings redesign to BottomSheet (BUG-46) + Added missing AI tool declarations for `update_task` and `reschedule_all` (BUG-47). | `settings_screen.dart`, `ai_service.dart` |
+| 04:30 | Antigravity | ✅ | flutter analyze — **0 issues** | — |
+
+### 2026-04-25
+
+| Time | Agent | Type | Change | Files |
+| :--- | :--- | :--- | :--- | :--- |
+| 19:10 | Antigravity | 🧹 | Git Cleanup: Verified `.gitignore`, excluded `scratch/` and unwanted artifacts | `.gitignore` |
+| 19:12 | Antigravity | ✅ | flutter analyze — **0 issues** | — |
+| 19:15 | Antigravity | 🚀 | Git Backup: Committed latest changes and pushed to origin main | — |

@@ -148,6 +148,35 @@ class AIService {
             requiredProperties: ['prompt', 'options'],
           ),
         ),
+        FunctionDeclaration(
+          'update_task',
+          'Updates an existing task title, date, time, priority, or category.',
+          Schema.object(
+            properties: {
+              'id': Schema.string(
+                description: 'The unique ID of the task to update',
+              ),
+              'title': Schema.string(description: 'New title (optional)'),
+              'date': Schema.string(description: 'New date in YYYY-MM-DD format (optional)'),
+              'time': Schema.string(description: 'New time in HH:mm format (optional)'),
+              'priority': Schema.integer(description: '0: Low, 1: Medium, 2: High (optional)'),
+              'category': Schema.string(description: 'Work, Personal, Health, Study, Finance, or Inbox (optional)'),
+            },
+            requiredProperties: ['id'],
+          ),
+        ),
+        FunctionDeclaration(
+          'reschedule_all',
+          'Moves all overdue tasks to today or tomorrow to clear the backlog.',
+          Schema.object(
+            properties: {
+              'newDate': Schema.string(
+                description: 'Target date in YYYY-MM-DD format. Use tomorrow\'s date to move overdue tasks forward.',
+              ),
+            },
+            requiredProperties: ['newDate'],
+          ),
+        ),
       ],
     ),
   ];
@@ -204,18 +233,6 @@ class AIService {
       }
     }
 
-    final historyString = history == null
-        ? ''
-        : history.map((m) => '${m.role}:${m.text}').join('|');
-    final cacheKey =
-        'chat_${prompt}_${effectiveModelId}_${historyString.hashCode}';
-
-    // Check Cache first
-    if (_cache.containsKey(cacheKey)) {
-      yield _cache[cacheKey] as ChatResult;
-      return;
-    }
-
     try {
       final contextString = _buildContextSummary(tasks, extraContext);
       final content = _prepareContent(
@@ -264,10 +281,6 @@ class AIService {
           modelName: assignedModelName ?? _getFriendlyName(effectiveModelId),
         );
 
-        // Cache final result if complete
-        if (candidate.finishReason == FinishReason.stop) {
-          _addToCache(cacheKey, result);
-        }
 
         yield result;
       }
@@ -339,6 +352,10 @@ class AIService {
         return AIActionType.deleteTasks;
       case 'suggest_options':
         return AIActionType.suggestion;
+      case 'update_task':
+        return AIActionType.updateTask;
+      case 'reschedule_all':
+        return AIActionType.rescheduleAll;
       default:
         return AIActionType.createTask;
     }

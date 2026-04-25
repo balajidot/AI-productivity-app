@@ -5,6 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../task_provider.dart';
 import '../../domain/task.dart';
 import '../../../chat/presentation/feedback_provider.dart';
+import '../../../../core/utils/service_failure.dart';
 
 
 class TaskCard extends ConsumerWidget {
@@ -49,7 +50,13 @@ class TaskCard extends ConsumerWidget {
           return true; // Delete
         } else {
           HapticFeedback.lightImpact();
-          await ref.read(tasksProvider.notifier).toggleTask(task.id);
+          try {
+            await ref.read(tasksProvider.notifier).toggleTask(task.id);
+          } catch (_) {
+            ref.read(feedbackProvider.notifier).showError(
+              ServiceFailure(message: 'Could not update task. Please try again.'),
+            );
+          }
           return false;
         }
       },
@@ -318,7 +325,7 @@ class _TaskBodySection extends StatelessWidget {
             ],
             if (!isCompleted) ...[
               const SizedBox(width: 6),
-              _buildPriorityBadge(task.priority),
+              _buildPriorityBadge(context, task.priority),
             ],
           ],
         ),
@@ -353,7 +360,7 @@ class _TaskBodySection extends StatelessWidget {
     );
   }
 
-  Widget _buildPriorityBadge(TaskPriority priority) {
+  Widget _buildPriorityBadge(BuildContext context, TaskPriority priority) {
     final color = TaskPriorityExtension.getColor(priority);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -363,7 +370,7 @@ class _TaskBodySection extends StatelessWidget {
       ),
       child: Text(
         priority.label.toUpperCase(),
-        style: TextStyle(
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: color,
           fontSize: 8,
           fontWeight: FontWeight.w900,

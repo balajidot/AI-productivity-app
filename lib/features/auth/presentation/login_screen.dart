@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'auth_provider.dart';
+import '../../chat/presentation/feedback_provider.dart';
+import '../../../core/utils/service_failure.dart';
 
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -21,21 +23,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await authService.signInWithGoogle();
     } catch (e) {
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Sign-In Error'),
-            content: SingleChildScrollView(
-              child: Text(e.toString()),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
+        ref.read(feedbackProvider.notifier).showError(
+              ServiceFailure(message: 'Sign-in failed. Please try again.'),
+            );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -123,15 +113,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Row(
+                          : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(LucideIcons.chrome, size: 20),
-                                SizedBox(width: 12),
+                                const Icon(LucideIcons.chrome, size: 20),
+                                const SizedBox(width: 12),
                                 Text(
                                   'Continue with Google',
-                                  style: TextStyle(
-                                    fontSize: 16,
+                                  style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

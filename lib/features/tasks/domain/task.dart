@@ -115,17 +115,22 @@ class Task {
     String? recurrence,
     int? focusSessions,
     int? timeSpentMinutes,
+    // FIX M2: Explicit clear flags for nullable fields.
+    // Use clearTime: true to remove a task's time (passing time: null is ambiguous).
+    bool clearTime = false,
+    bool clearDescription = false,
+    bool clearRecurrence = false,
   }) {
     return Task(
       id: id ?? this.id,
       title: title ?? this.title,
-      description: description ?? this.description,
+      description: clearDescription ? null : (description ?? this.description),
       date: date ?? this.date,
-      time: time ?? this.time,
+      time: clearTime ? null : (time ?? this.time),
       priority: priority ?? this.priority,
       category: category ?? this.category,
       status: status ?? this.status,
-      recurrence: recurrence ?? this.recurrence,
+      recurrence: clearRecurrence ? null : (recurrence ?? this.recurrence),
       focusSessions: focusSessions ?? this.focusSessions,
       timeSpentMinutes: timeSpentMinutes ?? this.timeSpentMinutes,
     );

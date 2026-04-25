@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../domain/habit.dart';
 import 'habit_provider.dart';
+import 'streak_freeze_provider.dart';
+import '../../settings/presentation/settings_provider.dart';
+import '../../chat/presentation/feedback_provider.dart';
 import '../../../core/utils/app_utils.dart';
 import '../../../core/widgets/empty_state.dart';
 
@@ -46,15 +49,24 @@ class _HabitsBody extends ConsumerWidget {
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
           sliver: SliverToBoxAdapter(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Habits', style: theme.textTheme.displaySmall),
-                if (habits.isNotEmpty)
-                  _StatsChip(
-                    completed: habits.where((h) => h.completedToday).length,
-                    total: habits.length,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Habits', style: theme.textTheme.displaySmall),
+                    if (habits.isNotEmpty)
+                      _StatsChip(
+                        completed: habits.where((h) => h.completedToday).length,
+                        total: habits.length,
+                      ),
+                  ],
+                ),
+                if (ref.watch(isPremiumProvider)) ...[
+                  const SizedBox(height: 12),
+                  const _FreezeTokenBar(),
+                ],
               ],
             ),
           ),
@@ -321,9 +333,17 @@ class _HabitTile extends ConsumerWidget {
               _WeekStrip(habit: habit),
             ],
           ),
-          trailing: habit.streak > 0
-              ? _StreakBadge(streak: habit.streak)
-              : null,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (habit.streak > 0) 
+                _StreakBadge(streak: habit.streak, isFrozen: habit.frozenToday),
+              if (ref.watch(isPremiumProvider) && !habit.completedToday && !habit.frozenToday) ...[
+                const SizedBox(width: 8),
+                _FreezeButton(habitId: habit.id),
+              ],
+            ],
+          ),
           ),
         ),
       ),
@@ -363,7 +383,10 @@ class _WeekStrip extends StatelessWidget {
       children: List.generate(7, (i) {
         final day = days[i];
         final done = completedSet.contains(day);
+        final frozen = habit.frozenDates.any((fd) => 
+            fd.year == day.year && fd.month == day.month && fd.day == day.day);
         final isToday = day == DateTime(today.year, today.month, today.day);
+        
         return Padding(
           padding: const EdgeInsets.only(right: 6),
           child: Column(
@@ -386,14 +409,21 @@ class _WeekStrip extends StatelessWidget {
                 height: 10,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: done ? Colors.green : Colors.transparent,
+                  color: frozen 
+                      ? Colors.blue.withValues(alpha: 0.4) 
+                      : (done ? Colors.green : Colors.transparent),
                   border: Border.all(
-                    color: isToday
-                        ? theme.colorScheme.primary.withValues(alpha: 0.5)
-                        : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                    color: frozen
+                        ? Colors.blue.withValues(alpha: 0.6)
+                        : (isToday
+                            ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                            : theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
                     width: 1,
                   ),
                 ),
+                child: frozen 
+                    ? const Icon(LucideIcons.snowflake, size: 6, color: Colors.blue)
+                    : null,
               ),
             ],
           ),
@@ -405,7 +435,8 @@ class _WeekStrip extends StatelessWidget {
 
 class _StreakBadge extends StatelessWidget {
   final int streak;
-  const _StreakBadge({required this.streak});
+  final bool isFrozen;
+  const _StreakBadge({required this.streak, this.isFrozen = false});
 
   @override
   Widget build(BuildContext context) {
@@ -413,19 +444,28 @@ class _StreakBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.15),
+        color: isFrozen 
+            ? Colors.blue.withValues(alpha: 0.15)
+            : Colors.orange.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
+        border: isFrozen 
+            ? Border.all(color: Colors.blue.withValues(alpha: 0.3))
+            : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(LucideIcons.flame, size: 12, color: Colors.orange),
+          Icon(
+            isFrozen ? LucideIcons.snowflake : LucideIcons.flame, 
+            size: 12, 
+            color: isFrozen ? Colors.blue : Colors.orange,
+          ),
           const SizedBox(width: 3),
           Text(
             '$streak',
             style: theme.textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.orange,
+              color: isFrozen ? Colors.blue : Colors.orange,
             ),
           ),
         ],
@@ -571,25 +611,125 @@ class _AddHabitSheetState extends ConsumerState<AddHabitSheet> {
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
-                onPressed: _submitting ? null : _submit,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: _submitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(widget.editHabit != null ? 'Save Changes' : 'Add Habit'),
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _controller,
+                builder: (context, value, child) {
+                  final hasText = value.text.trim().isNotEmpty;
+                  return FilledButton(
+                    onPressed: (_submitting || !hasText) ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: _submitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(widget.editHabit != null ? 'Save Changes' : 'Add Habit'),
+                  );
+                },
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Streak Freeze Widgets ───────────────────────────────────────────────────
+
+class _FreezeTokenBar extends ConsumerWidget {
+  const _FreezeTokenBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = ref.watch(streakFreezeProvider);
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(LucideIcons.snowflake, size: 16, color: theme.colorScheme.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Streak Freeze Tokens',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                Text(
+                  '${tokens.remaining} of $kFreezeTokensPerMonth left this month',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ...List.generate(kFreezeTokensPerMonth, (index) {
+            final isUsed = index >= tokens.remaining;
+            return Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Icon(
+                LucideIcons.snowflake,
+                size: 14,
+                color: isUsed 
+                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2)
+                    : theme.colorScheme.primary,
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class _FreezeButton extends ConsumerWidget {
+  final String habitId;
+  const _FreezeButton({required this.habitId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final tokens = ref.watch(streakFreezeProvider);
+
+    return IconButton(
+      onPressed: tokens.remaining > 0 ? () {
+        HapticFeedback.mediumImpact();
+        ref.read(habitsProvider.notifier).freezeStreak(habitId);
+      } : () {
+        ref.read(feedbackProvider.notifier).showMessage('No tokens left this month!');
+      },
+      icon: const Icon(LucideIcons.snowflake, size: 18),
+      color: tokens.remaining > 0 ? Colors.blue : theme.colorScheme.outline,
+      tooltip: 'Freeze Streak',
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.blue.withValues(alpha: 0.1),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }

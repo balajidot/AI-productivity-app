@@ -304,7 +304,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                         onPressed: () => Navigator.pop(context),
                         child: Text(
                           'Cancel',
-                          style: TextStyle(
+                          style: theme.textTheme.labelLarge?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -312,16 +312,21 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
 
                       const SizedBox(width: 12),
 
-                      // Save/Add Button
-                      FilledButton(
-                        onPressed: _submitTask,
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(isEditing ? 'Save' : 'Add'),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _controller,
+                        builder: (context, value, child) {
+                          final hasText = value.text.trim().isNotEmpty;
+                          return FilledButton(
+                            onPressed: hasText ? _submitTask : null,
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(isEditing ? 'Save' : 'Add'),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -430,7 +435,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                 ),
                 title: Text(
                   cat,
-                  style: TextStyle(
+                  style: theme.textTheme.bodyLarge?.copyWith(
                     color: isSelected
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurface,
@@ -484,7 +489,12 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
               'weekly',
               'monthly',
               'every monday',
+              'every tuesday',
+              'every wednesday',
+              'every thursday',
               'every friday',
+              'every saturday',
+              'every sunday',
             ].map((rec) {
               final label = rec ?? 'No repeat';
               final isSelected = rec == _selectedRecurrence;
@@ -498,7 +508,7 @@ class _QuickAddTaskSheetState extends ConsumerState<QuickAddTaskSheet> {
                 ),
                 title: Text(
                   label[0].toUpperCase() + label.substring(1),
-                  style: TextStyle(
+                  style: theme.textTheme.bodyLarge?.copyWith(
                     color: isSelected
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurface,

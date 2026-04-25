@@ -30,6 +30,12 @@ class AppTheme {
           fontWeight: FontWeight.bold,
           color: AppColors.onSurface,
         ),
+        displayMedium: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: AppColors.onSurface,
+          letterSpacing: -0.5,
+        ),
         headlineLarge: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
@@ -199,6 +205,12 @@ class AppTheme {
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: AppColors.lightOnSurface,
+        ),
+        displayMedium: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: AppColors.lightOnSurface,
+          letterSpacing: -0.5,
         ),
         headlineLarge: TextStyle(
           fontSize: 24,

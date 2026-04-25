@@ -10,6 +10,7 @@ import 'goal_decomposer_sheet.dart';
 import '../../settings/presentation/settings_provider.dart';
 import '../../settings/presentation/paywall_screen.dart';
 import '../../../core/constants/secrets.dart';
+import 'ai_usage_provider.dart';
 
 class AIAssistantScreen extends ConsumerStatefulWidget {
   const AIAssistantScreen({super.key});
@@ -70,9 +71,22 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
   void _sendMessage() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-
     if (!mounted) return;
 
+    // Check daily AI message limit for free users
+    final canSend = ref.read(aiUsageProvider.notifier).canSendMessage();
+    if (!canSend) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const PaywallScreen(),
+      );
+      return;
+    }
+
+    // Record usage before sending
+    ref.read(aiUsageProvider.notifier).recordMessageSent();
     ref.read(chatProvider.notifier).sendMessage(text);
     _controller.clear();
     _scrollToBottom();
@@ -155,6 +169,9 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
   }
 
   Widget _buildHeader(BuildContext context, ThemeData theme) {
+    final isPro = ref.watch(isPremiumProvider);
+    final usage = ref.watch(aiUsageProvider);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 4),
       child: Row(
@@ -204,6 +221,9 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
               ],
             ),
           ),
+          // Usage Counter (free users only)
+          if (!isPro) _UsageCounterPill(usage: usage, theme: theme),
+          const SizedBox(width: 8),
           IconButton(
             onPressed: _confirmClearChat,
             icon: Icon(
@@ -336,11 +356,82 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
   }
 
   Widget _buildInputArea(BuildContext context, ThemeData theme) {
+    final isPro = ref.watch(isPremiumProvider);
+    final usage = ref.watch(aiUsageProvider);
+    final nearLimit = !isPro && usage.remaining <= 3;
+    final atLimit = !isPro && usage.isLimitReached;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       child: Column(
         children: [
-          const SizedBox(height: 12),
+          // Warning banner — appears when within 3 messages or at limit
+          if (nearLimit || atLimit)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: atLimit
+                    ? theme.colorScheme.errorContainer
+                    : Colors.orange.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: atLimit
+                      ? theme.colorScheme.error.withValues(alpha: 0.4)
+                      : Colors.orange.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    atLimit ? LucideIcons.lock : LucideIcons.zap,
+                    size: 16,
+                    color: atLimit ? theme.colorScheme.error : Colors.orange,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      atLimit
+                          ? 'Daily limit reached. Upgrade to Pro for unlimited AI.'
+                          : '${usage.remaining} messages left today. Go Pro for unlimited.',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: atLimit
+                            ? theme.colorScheme.error
+                            : Colors.orange.shade800,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => const PaywallScreen(),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: atLimit
+                            ? theme.colorScheme.error
+                            : Colors.orange,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Upgrade',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainer,
@@ -372,8 +463,11 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
                   child: TextField(
                     controller: _controller,
                     style: theme.textTheme.bodyLarge,
+                    enabled: !atLimit,
                     decoration: InputDecoration(
-                      hintText: 'Ask anything...',
+                      hintText: atLimit
+                          ? 'Daily limit reached — upgrade to continue'
+                          : 'Ask anything...',
                       hintStyle: theme.textTheme.bodyLarge?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant.withValues(
                           alpha: 0.6,
@@ -388,14 +482,24 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
                     textInputAction: TextInputAction.send,
                   ),
                 ),
-                IconButton(
-                  onPressed: _sendMessage,
-                  icon: const Icon(LucideIcons.send, size: 20),
-                  color: theme.colorScheme.onPrimary,
-                  style: IconButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    padding: const EdgeInsets.all(12),
-                  ),
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _controller,
+                  builder: (context, value, child) {
+                    final isEmpty = value.text.trim().isEmpty || atLimit;
+                    return IconButton(
+                      onPressed: isEmpty ? null : _sendMessage,
+                      icon: const Icon(LucideIcons.send, size: 20),
+                      color: isEmpty 
+                          ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3)
+                          : theme.colorScheme.onPrimary,
+                      style: IconButton.styleFrom(
+                        backgroundColor: isEmpty 
+                            ? theme.colorScheme.surfaceContainerHighest
+                            : theme.colorScheme.primary,
+                        padding: const EdgeInsets.all(12),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -407,6 +511,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
 
   Widget _buildWelcomeMessage(BuildContext context, ThemeData theme) {
     final userName = ref.watch(userNameProvider);
+    final isPremium = ref.watch(isPremiumProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -451,7 +556,6 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
             'Break any big goal into tasks automatically',
             LucideIcons.target,
             onTap: () {
-              final isPremium = ref.read(isPremiumProvider);
               if (isPremium) {
                 showModalBottomSheet(
                   context: context,
@@ -475,7 +579,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen> {
             'Smart priority suggestions for your tasks',
             LucideIcons.listOrdered,
           ),
-          if (!ref.watch(isPremiumProvider))
+          if (!isPremium)
             _buildSuggestionCard(
               theme,
               'Unlock Pro Features',
@@ -753,6 +857,60 @@ class _TypingDotsState extends State<TypingDots> with TickerProviderStateMixin {
           },
         );
       }),
+    );
+  }
+}
+
+// ─── Usage Counter Pill (Free Users) ─────────────────────────────────────────
+
+class _UsageCounterPill extends StatelessWidget {
+  final AiUsageState usage;
+  final ThemeData theme;
+
+  const _UsageCounterPill({required this.usage, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = usage.remaining;
+    final Color pillColor;
+    if (remaining <= 0) {
+      pillColor = theme.colorScheme.error;
+    } else if (remaining <= 3) {
+      pillColor = Colors.orange;
+    } else {
+      pillColor = theme.colorScheme.primary;
+    }
+
+    return GestureDetector(
+      onTap: () => showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const PaywallScreen(),
+      ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: pillColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: pillColor.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(LucideIcons.zap, size: 12, color: pillColor),
+            const SizedBox(width: 5),
+            Text(
+              '$remaining left',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: pillColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

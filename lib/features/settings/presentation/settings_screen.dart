@@ -21,13 +21,38 @@ class SettingsScreen extends ConsumerWidget {
     final userEmail = ref.watch(userEmailProvider);
     final userPhoto = ref.watch(userPhotoProvider);
 
-    return Scaffold(
-      body: SafeArea(
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  width: 32,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
               RepaintBoundary(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -575,11 +600,11 @@ class SettingsScreen extends ConsumerWidget {
                         const SizedBox(width: 8),
                         TextButton(
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const PaywallScreen(),
-                              ),
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => const PaywallScreen(),
                             );
                           },
                           style: TextButton.styleFrom(

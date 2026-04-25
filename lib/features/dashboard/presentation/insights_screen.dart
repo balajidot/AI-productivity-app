@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -27,6 +28,7 @@ class _InsightsBody extends ConsumerWidget {
     final theme = Theme.of(context);
     final metrics = ref.watch(productivityMetricsProvider);
     final selectedRange = ref.watch(insightsRangeProvider);
+    final isPremium = ref.watch(isPremiumProvider);
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -61,18 +63,20 @@ class _InsightsBody extends ConsumerWidget {
               // Weekly AI Report banner
               GestureDetector(
                 onTap: () {
-                  final isPremium = ref.read(isPremiumProvider);
+                  HapticFeedback.mediumImpact();
                   if (isPremium) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const WeeklyReportScreen()),
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => const WeeklyReportScreen(),
                     );
                   } else {
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (context) => const PaywallScreen(),
+                      builder: (_) => const PaywallScreen(),
                     );
                   }
                 },

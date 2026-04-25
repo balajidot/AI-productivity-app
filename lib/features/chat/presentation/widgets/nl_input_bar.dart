@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../chat_provider.dart';
 import '../feedback_provider.dart';
+import '../ai_usage_provider.dart';
+import '../../../settings/presentation/settings_provider.dart';
+import '../../../settings/presentation/paywall_screen.dart';
 import '../../../tasks/presentation/task_provider.dart';
 
 class NaturalLanguageInputBar extends ConsumerStatefulWidget {
@@ -42,6 +45,21 @@ class _NaturalLanguageInputBarState
     final text = _controller.text.trim();
     if (text.isEmpty || _isProcessing) return;
 
+    final usage = ref.read(aiUsageProvider);
+    final isPremium = ref.read(isPremiumProvider);
+
+    if (!isPremium && usage.isLimitReached) {
+      if (mounted) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => const PaywallScreen(),
+        );
+      }
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
     try {
@@ -56,6 +74,9 @@ class _NaturalLanguageInputBarState
 
         // Add task (Optimistic UI handled by the provider)
         await ref.read(tasksProvider.notifier).addTask(parsedTask);
+
+        // Record AI usage for free users
+        ref.read(aiUsageProvider.notifier).recordMessageSent();
 
         _controller.clear();
         _focusNode.unfocus();
@@ -134,17 +155,17 @@ class _NaturalLanguageInputBarState
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : IconButton(
-                    onPressed: _handleSubmit,
+                    onPressed: _controller.text.trim().isNotEmpty ? _handleSubmit : null,
                     icon: Icon(
                       LucideIcons.arrowUp,
-                      color: _controller.text.isEmpty
-                          ? theme.colorScheme.onSurfaceVariant.withValues(
+                      color: _controller.text.trim().isNotEmpty
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant.withValues(
                               alpha: 0.3,
-                            )
-                          : theme.colorScheme.primary,
+                            ),
                     ),
                     style: IconButton.styleFrom(
-                      backgroundColor: _controller.text.isNotEmpty
+                      backgroundColor: _controller.text.trim().isNotEmpty
                           ? theme.colorScheme.primaryContainer
                           : Colors.transparent,
                     ),

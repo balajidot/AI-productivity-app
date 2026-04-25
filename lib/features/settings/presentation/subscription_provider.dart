@@ -6,6 +6,8 @@ import '../../../core/providers/providers.dart';
 import '../../chat/presentation/feedback_provider.dart';
 
 class SubscriptionState {
+  static const Object _noChange = Object();
+
   final List<ProductDetails> products;
   final bool isLoading;
   final bool isPro;
@@ -22,13 +24,13 @@ class SubscriptionState {
     List<ProductDetails>? products,
     bool? isLoading,
     bool? isPro,
-    String? error,
+    Object? error = _noChange,
   }) {
     return SubscriptionState(
       products: products ?? this.products,
       isLoading: isLoading ?? this.isLoading,
       isPro: isPro ?? this.isPro,
-      error: error ?? this.error,
+      error: identical(error, _noChange) ? this.error : error as String?,
     );
   }
 }
@@ -52,8 +54,9 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
 
     ref.onDispose(() => _subscription.cancel());
 
-    // Initial load
-    _init();
+    // FIX C1: Use Future.microtask instead of direct call to avoid
+    // mutating state during the build phase (Riverpod rule).
+    Future.microtask(() => _init());
 
     return SubscriptionState();
   }

@@ -39,7 +39,7 @@ class AppUtils {
       case 'friday':    return DateTime.friday;
       case 'saturday':  return DateTime.saturday;
       case 'sunday':    return DateTime.sunday;
-      default:          return DateTime.monday;
+      default:          return 0; // Invalid weekday — caller must guard against this
     }
   }
 }

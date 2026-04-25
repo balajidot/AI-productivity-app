@@ -93,11 +93,11 @@ class _MyAppState extends State<MyApp> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(LucideIcons.alertCircle, color: Colors.red, size: 64),
+                  Icon(LucideIcons.alertCircle, color: Theme.of(context).colorScheme.error, size: 64),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Firebase Connection Error',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -157,31 +157,40 @@ class _MyAppState extends State<MyApp> {
               }
               return const LoginScreen();
             },
-            loading: () => const Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(LucideIcons.zap, size: 64, color: Colors.deepPurple),
-                    SizedBox(height: 16),
-                    Text(
-                      'Zeno',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    SizedBox(height: 24),
-                    CircularProgressIndicator(),
-                  ],
-                ),
-              ),
-            ),
+            loading: () => const _LoadingScreen(),
             error: (e, st) => const LoginScreen(), // Fallback
           ),
         );
       },
+    );
+  }
+}
+
+class _LoadingScreen extends StatelessWidget {
+  const _LoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(LucideIcons.zap, size: 64, color: theme.colorScheme.primary),
+            const SizedBox(height: 16),
+            Text(
+              'Zeno',
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(),
+          ],
+        ),
+      ),
     );
   }
 }

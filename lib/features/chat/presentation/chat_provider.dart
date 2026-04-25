@@ -142,7 +142,10 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
         ref.read(firestoreServiceProvider)?.saveMessage(aiMessage).ignore();
       }
     } catch (e) {
-      _updateAiMessage(aiMsgId, 'Error: $e', null);
+      final friendly = e.toString().contains('SocketException') || e.toString().contains('network')
+          ? "No internet connection. Please check your network and try again."
+          : "Something went wrong. Please try again in a moment.";
+      _updateAiMessage(aiMsgId, friendly, null);
     } finally {
       _isGenerating = false;
       ref.read(aiLoadingProvider.notifier).set(false);
@@ -345,7 +348,8 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
         }
         break;
       case AIActionType.suggestion:
-        sendMessage("[Chosen: ${p['label']}] ${p['value']}");
+        // FIX H2: await sendMessage to avoid race with _markActionExecuted
+        await sendMessage("[Chosen: ${p['label']}] ${p['value']}");
         break;
       case AIActionType.deleteRecord:
       case AIActionType.generateVisual:
@@ -414,7 +418,8 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
   }
 
   Future<void> clearChat() async {
-    await ref.read(firestoreServiceProvider)?.clearChatHistory();
+    // FIX C4: Optimistically clear UI first, then sync to Firestore
     state = [];
+    await ref.read(firestoreServiceProvider)?.clearChatHistory();
   }
 }

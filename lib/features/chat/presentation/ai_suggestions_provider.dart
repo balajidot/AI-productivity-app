@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../habits/presentation/habit_provider.dart';
@@ -10,7 +11,7 @@ class AISuggestion {
   final String title;
   final String description;
   final AIAction? action;
-  final dynamic icon;
+  final IconData? icon;
 
   AISuggestion({
     required this.id,

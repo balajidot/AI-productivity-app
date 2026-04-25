@@ -52,21 +52,27 @@ class PomodoroState {
 class PomodoroNotifier extends Notifier<PomodoroState> {
   Timer? _timer;
   AppLifecycleListener? _lifecycleListener;
+  // FIX C2: One-time init guard so lifecycle listener is only created once,
+  // preventing stacked ref.onDispose() callbacks on every settings rebuild.
+  bool _isLifecycleInit = false;
 
   @override
   PomodoroState build() {
     final settings = ref.watch(appSettingsProvider);
-    
-    _lifecycleListener ??= AppLifecycleListener(
-      onStateChange: _onAppLifecycleStateChange,
-    );
 
-    ref.onDispose(() {
-      _timer?.cancel();
-      _timer = null;
-      _lifecycleListener?.dispose();
-    });
-    
+    if (!_isLifecycleInit) {
+      _isLifecycleInit = true;
+      _lifecycleListener = AppLifecycleListener(
+        onStateChange: _onAppLifecycleStateChange,
+      );
+      ref.onDispose(() {
+        _timer?.cancel();
+        _timer = null;
+        _lifecycleListener?.dispose();
+        _lifecycleListener = null;
+      });
+    }
+
     // Only reset if not currently running
     if (_timer != null) return state;
     return PomodoroState(secondsRemaining: settings.pomodoroDuration * 60);
@@ -147,6 +153,8 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       // Update linked task stats
       if (state.selectedTask != null) {
         final task = state.selectedTask!;
+        // FIX H7: Capture updatedTask in a local variable so both mutations
+        // use the same reference — avoids fragility if state is batched.
         final updatedTask = task.copyWith(
           focusSessions: (task.focusSessions ?? 0) + 1,
           timeSpentMinutes: (task.timeSpentMinutes ?? 0) + (_workDuration ~/ 60),

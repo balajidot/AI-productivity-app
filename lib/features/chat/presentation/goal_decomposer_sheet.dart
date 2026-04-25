@@ -33,6 +33,16 @@ class _GoalDecomposerSheetState extends ConsumerState<GoalDecomposerSheet> {
         _selectedTimeframe,
       );
       if (!mounted) return;
+      
+      final tasks = results['tasks'] as List?;
+      if (tasks == null || tasks.isEmpty) {
+        setState(() => _isAnalyzing = false);
+        ref.read(feedbackProvider.notifier).showError(
+          'AI could not decompose this goal. Please try a more specific goal description.',
+        );
+        return;
+      }
+
       setState(() {
         _results = results;
         _isAnalyzing = false;
@@ -130,7 +140,7 @@ class _GoalDecomposerSheetState extends ConsumerState<GoalDecomposerSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Milestones', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Milestones', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         ...milestones.map((m) => Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -143,7 +153,7 @@ class _GoalDecomposerSheetState extends ConsumerState<GoalDecomposerSheet> {
           ),
         )),
         const Divider(height: 32),
-        const Text('Daily Action Tasks', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Daily Action Tasks', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         ...tasksData.map((t) => Container(
           margin: const EdgeInsets.only(bottom: 8),

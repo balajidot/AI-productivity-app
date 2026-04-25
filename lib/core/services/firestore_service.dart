@@ -166,7 +166,9 @@ class FirestoreService {
   }
 
   Future<void> clearChatHistory() async {
-    while (true) {
+    int safetyCount = 0;
+    while (safetyCount < 50) {
+      safetyCount++;
       // Fetch only 100 documents at a time to stay safe on memory
       final snapshots = await _messagesRef.limit(100).get();
       if (snapshots.docs.isEmpty) break;

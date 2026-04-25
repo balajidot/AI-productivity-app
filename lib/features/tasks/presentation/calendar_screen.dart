@@ -114,7 +114,7 @@ class CalendarScreen extends ConsumerWidget {
             color: theme.colorScheme.primaryContainer,
             shape: BoxShape.circle,
           ),
-          todayTextStyle: TextStyle(
+          todayTextStyle: theme.textTheme.bodyMedium!.copyWith(
             color: theme.colorScheme.onPrimaryContainer,
             fontWeight: FontWeight.bold,
           ),
@@ -385,7 +385,7 @@ class CalendarScreen extends ConsumerWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         elevation: 0,
       ),
-      child: const Text('Today', style: TextStyle(fontWeight: FontWeight.bold)),
+      child: Text('Today', style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold)),
     );
   }
 

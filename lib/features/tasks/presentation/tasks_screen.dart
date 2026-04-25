@@ -131,30 +131,30 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
       child: TabBar(
         controller: _tabController,
         isScrollable: true,
-        dividerColor: Colors.transparent,
+        dividerColor: theme.colorScheme.outlineVariant.withValues(alpha: 0.1),
         tabAlignment: TabAlignment.start,
         indicatorSize: TabBarIndicatorSize.label,
         indicator: UnderlineTabIndicator(
           borderSide: BorderSide(
-            width: 3,
+            width: 3.5,
             color: theme.colorScheme.primary,
           ),
-          borderRadius: BorderRadius.circular(3),
-          insets: const EdgeInsets.symmetric(horizontal: -4),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+          insets: const EdgeInsets.symmetric(horizontal: -6, vertical: -2),
         ),
-        labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-        labelStyle: theme.textTheme.titleSmall?.copyWith(
+        labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+        labelStyle: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.bold,
-          letterSpacing: 0.1,
-          fontSize: 14,
+          letterSpacing: -0.2,
+          fontSize: 15,
         ),
-        unselectedLabelStyle: theme.textTheme.titleSmall?.copyWith(
+        unselectedLabelStyle: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w500,
-          letterSpacing: 0.1,
-          fontSize: 14,
+          letterSpacing: -0.2,
+          fontSize: 15,
         ),
         labelColor: theme.colorScheme.primary,
-        unselectedLabelColor: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+        unselectedLabelColor: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
         tabs: [
           _buildTabLabel(theme, 'Today', today.where((t) => t.status != TaskStatus.completed).length),
           _buildTabLabel(theme, 'Tomorrow', tomorrow.where((t) => t.status != TaskStatus.completed).length),
@@ -562,31 +562,20 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
     final isDark = theme.brightness == Brightness.dark;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      height: 52,
+      height: 54,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [
-                  theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
-                  theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
-                ]
-              : [
-                  theme.colorScheme.surface.withValues(alpha: 0.95),
-                  theme.colorScheme.surfaceContainerLow,
-                ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(26),
+        color: isDark 
+            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5) 
+            : Colors.white,
+        borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.1 : 0.05),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: isDark ? 0.2 : 0.5),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.shadow.withValues(alpha: isDark ? 0.4 : 0.06),
-            blurRadius: 16,
-            spreadRadius: -2,
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -595,11 +584,11 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
         children: [
           // Search Icon (left)
           Padding(
-            padding: const EdgeInsets.only(left: 14, right: 8),
+            padding: const EdgeInsets.only(left: 18, right: 10),
             child: Icon(
               LucideIcons.search,
-              size: 18,
-              color: theme.colorScheme.primary.withValues(alpha: 0.8),
+              size: 20,
+              color: theme.colorScheme.primary,
             ),
           ),
           // Text Field
@@ -611,15 +600,14 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
                 setState(() {}); // refresh clear button
               },
               style: theme.textTheme.bodyLarge?.copyWith(
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: theme.colorScheme.onSurface,
               ),
               decoration: InputDecoration(
                 hintText: 'Search tasks...',
                 hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                  fontSize: 14,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  fontSize: 15,
                   fontWeight: FontWeight.w400,
                 ),
                 border: InputBorder.none,
@@ -631,36 +619,24 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
           ),
           // Clear button (shows only when typing)
           if (_searchController.text.isNotEmpty)
-            GestureDetector(
-              onTap: () {
+            IconButton(
+              icon: const Icon(LucideIcons.x, size: 16),
+              onPressed: () {
                 _searchController.clear();
                 ref.read(searchQueryProvider.notifier).set('');
                 setState(() {});
                 HapticFeedback.lightImpact();
               },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    LucideIcons.x,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              visualDensity: VisualDensity.compact,
             ),
           // Avatar (right)
           Padding(
-            padding: const EdgeInsets.only(right: 8, left: 4),
+            padding: const EdgeInsets.only(right: 12, left: 8),
             child: Container(
-              width: 32,
-              height: 32,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [theme.colorScheme.primary, theme.colorScheme.tertiary],
@@ -668,15 +644,21 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
                   end: Alignment.bottomRight,
                 ),
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Center(
                 child: Text(
                   ref.watch(userNameProvider).isNotEmpty 
                       ? ref.watch(userNameProvider)[0].toUpperCase() 
                       : '?',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -705,40 +687,60 @@ class _TasksScreenState extends ConsumerState<TasksScreen> with SingleTickerProv
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: categories.map((cat) {
-          final isSelected = selectedCategory == cat['name'];
+          final name = cat['name'] as String;
+          final isSelected = selectedCategory == name;
+          final isDark = theme.brightness == Brightness.dark;
+          
           return Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(cat['name'] as String),
-              avatar: cat['name'] == 'All' 
-                  ? Icon(
-                      cat['icon'] as IconData, 
-                      size: 16, 
-                      color: isSelected ? theme.colorScheme.onSecondaryContainer : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                    )
-                  : null,
-              selected: isSelected,
-              onSelected: (_) {
+            child: InkWell(
+              onTap: () {
                 HapticFeedback.selectionClick();
-                ref.read(selectedCategoryProvider.notifier).set(cat['name'] as String);
+                ref.read(selectedCategoryProvider.notifier).set(name);
               },
-              backgroundColor: theme.colorScheme.surface,
-              selectedColor: theme.colorScheme.secondaryContainer.withValues(alpha: 0.7),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: isSelected ? Colors.transparent : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-                  width: 1,
+              borderRadius: BorderRadius.circular(28),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? theme.colorScheme.primary 
+                      : (isDark ? theme.colorScheme.surfaceContainer : theme.colorScheme.surfaceContainerLow),
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: isSelected ? [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    )
+                  ] : null,
+                  border: Border.all(
+                    color: isSelected 
+                        ? Colors.transparent 
+                        : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    if (name == 'All') ...[
+                      Icon(
+                        cat['icon'] as IconData,
+                        size: 16,
+                        color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      name,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              showCheckmark: false,
-              labelStyle: theme.textTheme.labelLarge?.copyWith(
-                color: isSelected ? theme.colorScheme.onSecondaryContainer : theme.colorScheme.onSurfaceVariant,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
             ),
           );
         }).toList(),

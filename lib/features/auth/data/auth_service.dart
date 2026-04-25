@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -58,6 +59,10 @@ class AuthService {
   // Sign out
   Future<void> signOut() async {
     try {
+      // FIX M6: Clear onboarding flag so a new user on the same device
+      // sees the onboarding flow instead of being silently skipped.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('onboarding_complete');
       await _googleSignIn.signOut();
       await _auth.signOut();
     } catch (e) {

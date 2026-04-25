@@ -271,6 +271,9 @@ class TaskNotifier extends Notifier<TaskPaginationState> {
   }
 
   Future<void> refresh() async {
+    // FIX H1: Reset _isInit so build() can re-trigger initial fetch if provider
+    // is rebuilt (e.g. on theme change) after a refresh() call.
+    _isInit = false;
     state = TaskPaginationState();
     await loadNextPage();
   }
@@ -447,9 +450,11 @@ class TaskNotifier extends Notifier<TaskPaginationState> {
     } else if (normalized.startsWith('every ')) {
       final dayName = normalized.replaceFirst('every ', '').trim();
       final targetDay = AppUtils.dayNameToInt(dayName);
-      int daysAhead = targetDay - from.weekday;
-      if (daysAhead <= 0) daysAhead += 7;
-      return from.add(Duration(days: daysAhead));
+      if (targetDay >= 1 && targetDay <= 7) {
+        int daysAhead = targetDay - from.weekday;
+        if (daysAhead <= 0) daysAhead += 7;
+        return from.add(Duration(days: daysAhead));
+      }
     }
 
     return from.add(const Duration(days: 1)); // Default fallback
