@@ -49,7 +49,7 @@
 ### 🟡 P1 — Post Launch
 - [x] Onboarding screen
 - [x] Morning push notification
-- [ ] Subscription expiry auto-revoke
+- [x] Subscription expiry auto-revoke
 
 ### 🟢 P2 — Future
 - [ ] Home screen widget
@@ -62,7 +62,6 @@
 | ID | Issue | Priority |
 | :- | :--- | :--- |
 | L-01 | IAP emulator-ல் work ஆகாது — real device only | Low |
-| L-02 | Subscription expiry auto-revoke இல்லை | Medium |
 | L-03 | Play Console product IDs create பண்ணல | High |
 
 ---
@@ -189,3 +188,10 @@
 | 19:10 | Antigravity | 🧹 | Git Cleanup: Verified `.gitignore`, excluded `scratch/` and unwanted artifacts | `.gitignore` |
 | 19:12 | Antigravity | ✅ | flutter analyze — **0 issues** | — |
 | 19:15 | Antigravity | 🚀 | Git Backup: Committed latest changes and pushed to origin main | — |
+| 19:45 | Antigravity | 🔧 | **BRIDGE-019**: WeeklyReportScreen sheet redesign (BUG-48) + isPremiumProvider reactive fix (BUG-49) | `weekly_report_screen.dart`, `insights_screen.dart` |
+| 19:48 | Antigravity | ✅ | flutter analyze — **0 issues** | — |
+| 19:50 | Antigravity | 📦 | **BUILD**: Release APK Success (63.4MB) | `app-release.apk` |
+| 20:45 | Antigravity | ⚡ | **BRIDGE-020**: APK Size Optimization (animations removal, font tree-shaking) + Security Fixes (PII masking, safe casting, NLP guard) | `pubspec.yaml`, `auth_service.dart`, `natural_language_parser.dart`, `weekly_report_service.dart` |
+| 20:50 | Antigravity | ✅ | flutter analyze — **0 issues** | — |
+| 19:50 | Antigravity | 📦 | **BRIDGE-021**: Final Production Build Success. APK: 23.8MB (arm64), AAB: 48.7MB. Obfuscation & Security fixes included. | `app-release.apk`, `app-release.aab` |
+| 21:05 | Antigravity | 🔧 | **BRIDGE-022**: Subscription Expiry Auto-Revoke (Firestore sync) + Doc Cleanup (Obsidian AI -> Zeno) | `firestore_service.dart`, `subscription_provider.dart`, `Gemini.md`, `CLAUDE.md` |

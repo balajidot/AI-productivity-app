@@ -24,7 +24,7 @@ class AuthService {
         return null;
       }
 
-      debugPrint('AuthService: Google User obtained: ${googleUser.email}');
+      debugPrint('AuthService: Google User obtained.');
       // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
@@ -38,7 +38,7 @@ class AuthService {
       // Once signed in, return the UserCredential
       debugPrint('AuthService: Signing in to Firebase with credential...');
       final userCredential = await _auth.signInWithCredential(credential);
-      debugPrint('AuthService: Successfully signed in to Firebase: ${userCredential.user?.email}');
+      debugPrint('AuthService: Successfully signed in to Firebase.');
       return userCredential;
     } catch (e) {
       debugPrint('AuthService: Error during Google Sign-In: $e');

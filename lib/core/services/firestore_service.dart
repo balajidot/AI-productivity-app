@@ -165,6 +165,13 @@ class FirestoreService {
     }, SetOptions(merge: true)));
   }
 
+  Future<void> revokePremiumStatus() {
+    return _withRetry(() => _db.collection('users').doc(uid).set({
+      'isPremium': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)));
+  }
+
   Future<void> clearChatHistory() async {
     int safetyCount = 0;
     while (safetyCount < 50) {

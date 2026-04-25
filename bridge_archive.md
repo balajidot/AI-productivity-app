@@ -57,3 +57,36 @@ Completed tasks history. Do not re-execute anything listed here.
 - BUG-47: update_task + reschedule_all FunctionDeclarations added to ai_service.dart
 - BUG-47: _mapActionToType updated with update_task + reschedule_all cases
 - flutter analyze: 0 issues.
+
+---
+
+## BRIDGE-019 -- WeeklyReport Redesign + Reactive Premium Fix
+**Status:** DONE
+- BUG-48: WeeklyReportScreen Scaffold ? Container sheet (weekly_report_screen.dart)
+- BUG-49: isPremiumProvider reactive fix (insights_screen.dart)
+- Git Backup: All changes pushed to main.
+- Production APK build (63.4MB).
+- flutter analyze: 0 issues.
+
+---
+
+## BRIDGE-020 -- APK Size Optimization + Security Fixes
+**Status:** DONE
+- ITEM 1: Removed nimations package (zero usages).
+- ITEM 2: Deleted duplicate pp_icon_new.png.
+- ITEM 5: Set uses-material-design: false (Material Icons tree-shaking).
+- ITEM 6: Removed PII (emails) from uth_service.dart debug logs.
+- ITEM 7: Added 500-char length guard to 
+atural_language_parser.dart.
+- ITEM 8: Implemented safe JSON casting in weekly_report_service.dart.
+- flutter analyze: 0 issues.
+
+---
+
+## BRIDGE-021 -- Final Release Build (APK + AAB)
+**Status:** DONE
+- APK Build: Success (23.8 MB, arm64).
+- AAB Build: Success (48.7 MB).
+- Obfuscation and split-debug-info enabled.
+- All API keys injected via dart-define.
+- Verification: APK is ready for deployment.

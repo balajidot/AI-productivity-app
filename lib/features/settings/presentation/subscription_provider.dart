@@ -73,16 +73,23 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
       if (user != null && firestore != null) {
         final doc = await firestore.getUserProfile();
         if (doc != null) {
-          final isPremium = doc['isPremium'] as bool? ?? false;
+          final isPremiumDoc = doc['isPremium'] as bool? ?? false;
           final expiryTs = doc['expiryDate'] as dynamic;
           final expiry = expiryTs != null
               ? (expiryTs as dynamic).toDate() as DateTime
               : null;
-          final isStillActive = isPremium &&
+          
+          final now = DateTime.now();
+          final isStillActive = isPremiumDoc &&
               expiry != null &&
-              expiry.isAfter(DateTime.now());
+              expiry.isAfter(now);
+          
           if (isStillActive) {
             state = state.copyWith(isPro: true);
+          } else if (isPremiumDoc && expiry != null && expiry.isBefore(now)) {
+            // Subscription expired -> Revoke in Firestore
+            await firestore.revokePremiumStatus();
+            state = state.copyWith(isPro: false);
           }
         }
       }

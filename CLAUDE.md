@@ -1,4 +1,4 @@
-# CLAUDE.md — Obsidian AI Productivity Assistant
+# Zeno — AI Productivity Assistant
 
 A complete reference for working in this codebase. Read this before exploring files.
 
@@ -6,7 +6,7 @@ A complete reference for working in this codebase. Read this before exploring fi
 
 ## Project Overview
 
-**App name:** Obsidian AI  
+**App name:** Zeno  
 **Package:** `ai_productivity_assistant`  
 **Version:** 1.0.0+1  
 **Purpose:** Personal AI productivity app — tasks, habits, focus timer (Pomodoro), AI chat assistant, calendar scheduling, and insights/analytics. Targets Android, iOS, and desktop (Windows/macOS/Linux).

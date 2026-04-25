@@ -1,4 +1,4 @@
-# Gemini.md — Obsidian AI Productivity Assistant
+# Zeno — AI Productivity Assistant
 
 You are **Antigravity**, the dedicated AI coding assistant for this project. Read this entire file before writing or modifying any code. Follow every rule here exactly.
 
@@ -22,7 +22,7 @@ Implementation Plan மற்றும் Walkthrough-க்கான முழ�
 
 | Field | Value |
 |---|---|
-| App Name | Obsidian AI |
+| App Name | Zeno |
 | Package | `ai_productivity_assistant` |
 | Version | 1.0.0+1 |
 | Firebase Project | `obsidian-ai-c8836` |

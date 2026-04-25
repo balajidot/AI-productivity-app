@@ -62,16 +62,19 @@ Return ONLY the JSON, no other text.
     final jsonParsed = jsonDecode(AppUtils.extractJson(response.text ?? ''));
     
     return WeeklyReport(
-      score: jsonParsed['score'] as int,
-      whatWentWell: List<String>.from(jsonParsed['whatWentWell']),
-      areasToImprove: List<String>.from(jsonParsed['areasToImprove']),
-      nextWeekTasks: (jsonParsed['nextWeekTasks'] as List).map((t) => Task(
-        id: AppUtils.generateId(prefix: 'task'),
-        title: t['title'],
-        date: DateTime.now().add(const Duration(days: 1)),
-        priority: TaskPriority.values[(t['priority'] as int).clamp(0, 2)],
-        category: t['category'] ?? 'Inbox',
-      )).toList(),
+      score: (jsonParsed['score'] as num?)?.toInt() ?? 0,
+      whatWentWell: (jsonParsed['whatWentWell'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      areasToImprove: (jsonParsed['areasToImprove'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      nextWeekTasks: (jsonParsed['nextWeekTasks'] as List?)?.map((t) {
+        final map = t as Map<String, dynamic>? ?? {};
+        return Task(
+          id: AppUtils.generateId(prefix: 'task'),
+          title: map['title']?.toString() ?? 'Untitled Task',
+          date: DateTime.now().add(const Duration(days: 1)),
+          priority: TaskPriority.values[((map['priority'] as num?)?.toInt() ?? 1).clamp(0, 2)],
+          category: map['category']?.toString() ?? 'Inbox',
+        );
+      }).toList() ?? [],
     );
   }
 }

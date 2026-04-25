@@ -105,31 +105,30 @@ class _WeeklyReportScreenState extends ConsumerState<WeeklyReportScreen> {
         child: Column(
           children: [
             // Drag handle
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 4),
+              width: 32,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            // Header row
+            // Header row (replaces AppBar)
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 12, 8),
+              padding: const EdgeInsets.fromLTRB(24, 8, 8, 0),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       'Weekly Insight',
-                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   IconButton(
                     icon: const Icon(LucideIcons.rotateCcw),
-                    color: theme.colorScheme.onSurfaceVariant,
                     onPressed: () {
                       setState(() {
                         _isLoading = true;
@@ -137,15 +136,20 @@ class _WeeklyReportScreenState extends ConsumerState<WeeklyReportScreen> {
                       });
                       _generateReport();
                     },
+                    tooltip: 'Refresh',
                   ),
                   IconButton(
-                    icon: const Icon(LucideIcons.x),
-                    color: theme.colorScheme.onSurfaceVariant,
                     onPressed: () => Navigator.pop(context),
+                    icon: const Icon(LucideIcons.x),
+                    style: IconButton.styleFrom(
+                      backgroundColor: theme.colorScheme.surfaceContainerLow,
+                      shape: const CircleBorder(),
+                    ),
                   ),
                 ],
               ),
             ),
+            // Body
             Expanded(child: _buildBody(theme)),
           ],
         ),

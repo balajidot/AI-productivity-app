@@ -23,7 +23,9 @@ class ParsedTaskData {
 
 class NaturalLanguageParser {
   static ParsedTaskData parse(String input) {
-    String text = input.trim();
+    // Length guard to prevent processing massive strings
+    final String guardedInput = input.length > 500 ? input.substring(0, 500) : input;
+    String text = guardedInput.trim();
     DateTime? parsedDate;
     TimeOfDay? parsedTime;
     TaskPriority? parsedPriority;

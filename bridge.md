@@ -23,184 +23,49 @@
 ---
 
 ## CURRENT TASK
-**Status:** PENDING
-**ID:** BRIDGE-019
+**Status:** COMPLETED
+**ID:** BRIDGE-022
 
 ---
 
-### TASK: WeeklyReportScreen Sheet Redesign + isPremiumProvider Watch Fix
+### TASK: Subscription Expiry Auto-Revoke & Doc Cleanup
 
-**Step 0 -- Before you write a single line of code:**
-Read `project_rules.md` fully.
-
-**Context:** Two fixes. WeeklyReportScreen has a full Scaffold + AppBar but is opened via showModalBottomSheet -- same problem as SettingsScreen was. Also, insights_screen.dart reads isPremiumProvider with ref.read() in onTap instead of ref.watch() in build.
-Do NOT run a build. Run `flutter analyze` only at the end.
+**Step 0 -- Context:**
+The app currently checks subscription expiry locally but doesn't sync the "expired" state back to Firestore. We need to ensure that if a user's plan has expired, Firestore is updated to `isPremium: false`. Also, some documentation still refers to "Obsidian AI" instead of "Zeno".
 
 ---
 
-## SECTION A -- WEEKLY REPORT SCREEN: REMOVE SCAFFOLD
+## STEP 1 -- Update FirestoreService
 
-### BUG-48
-**File:** `lib/features/insights/presentation/weekly_report_screen.dart`
-
-**Problem:** WeeklyReportScreen uses `Scaffold` with `AppBar`. It is opened via `showModalBottomSheet` (BUG-37 fix). The nested Scaffold creates a mis-aligned AppBar inside a bottom sheet, wrong back-button routing, and wrong SafeArea padding.
-
-**Fix strategy:** Replace `Scaffold` + `AppBar` with a `Container` sheet wrapper. The AppBar's refresh button moves into a header Row. The AppBar's title becomes a Text widget in the header Row.
-
-**Current `build()` return:**
-```dart
-return Scaffold(
-  appBar: AppBar(
-    title: const Text('Weekly Insight'),
-    actions: [
-      IconButton(
-        icon: const Icon(LucideIcons.rotateCcw),
-        onPressed: () {
-          setState(() {
-            _isLoading = true;
-            _error = null;
-          });
-          _generateReport();
-        },
-      ),
-    ],
-  ),
-  body: _buildBody(theme),
-);
-```
-
-**Fix -- replace with sheet Container:**
-```dart
-return Container(
-  decoration: BoxDecoration(
-    color: theme.colorScheme.surface,
-    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-  ),
-  child: SafeArea(
-    top: false,
-    child: Column(
-      children: [
-        // Drag handle
-        Container(
-          margin: const EdgeInsets.only(top: 12, bottom: 4),
-          width: 32,
-          height: 4,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        // Header row (replaces AppBar)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 8, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Weekly Insight',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(LucideIcons.rotateCcw),
-                onPressed: () {
-                  setState(() {
-                    _isLoading = true;
-                    _error = null;
-                  });
-                  _generateReport();
-                },
-                tooltip: 'Refresh',
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(LucideIcons.x),
-                style: IconButton.styleFrom(
-                  backgroundColor: theme.colorScheme.surfaceContainerLow,
-                  shape: const CircleBorder(),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // Body
-        Expanded(child: _buildBody(theme)),
-      ],
-    ),
-  ),
-);
-```
-
-**IMPORTANT:**
-- `_buildBody(theme)` stays completely unchanged -- only the outer Scaffold wrapper is replaced.
-- `Expanded(child: _buildBody(theme))` is needed so the scrollable body fills the remaining sheet height.
-- The existing `SingleChildScrollView` inside `_buildBody` handles scrolling correctly.
-- Do NOT change `_buildBody`, `_buildHeader`, `_buildScoreHero`, `_buildMetricGrid`, `_buildSection`, `_buildActionPlan`, or any other method.
+Add `revokePremiumStatus()` to `lib/core/services/firestore_service.dart`.
 
 ---
 
-## SECTION B -- isPremiumProvider: ref.read → ref.watch
+## STEP 2 -- Update SubscriptionNotifier
 
-### BUG-49
-**File:** `lib/features/dashboard/presentation/insights_screen.dart`
-**Location:** `_InsightsBody.build()` -- GestureDetector onTap for Weekly AI Report banner.
-
-**Problem:** `ref.read(isPremiumProvider)` is called inside `onTap`. This means if the user upgrades to Pro mid-session, the button behavior does not update until a full rebuild. Rule 6: providers in build context must use `ref.watch()`.
-
-**Find:** Inside `_InsightsBody.build()`, the GestureDetector:
-```dart
-onTap: () {
-  final isPremium = ref.read(isPremiumProvider);
-  if (isPremium) {
-    showModalBottomSheet(
-```
-
-**Fix -- watch isPremiumProvider in build, use the variable in onTap:**
-
-Add this line near the top of `_InsightsBody.build()`, alongside the existing watches:
-```dart
-final isPremium = ref.watch(isPremiumProvider);
-```
-
-Then update the onTap to use the watched variable instead of ref.read:
-```dart
-onTap: () {
-  if (isPremium) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const WeeklyReportScreen(),
-    );
-  } else {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const PaywallScreen(),
-    );
-  }
-},
-```
-
-**Note:** Remove the `final isPremium = ref.read(isPremiumProvider);` line from inside the onTap callback after adding the watch at the top of build.
+In `lib/features/settings/presentation/subscription_provider.dart`, inside `_init()`, detect if `isPremium` is true but `expiryDate` is in the past. If so, call `revokePremiumStatus()` and update local state.
 
 ---
 
-## SECTION C -- VERIFICATION ONLY
+## STEP 3 -- Documentation Cleanup
 
-```bash
-flutter analyze --no-fatal-infos
-```
-Expected: 0 errors, 0 warnings. **DO NOT run flutter build.**
+Replace all "Obsidian AI" occurrences with "Zeno" in:
+- `Gemini.md`
+- `CLAUDE.md`
+
+---
+
+## STEP 4 -- Verification
+
+1. Run `flutter analyze`.
+2. Verify logic via code review (cannot test IAP expiry easily in this environment).
 
 ---
 
 ## RESULT
-**Status:** PENDING
-- BUG-48 WeeklyReportScreen Scaffold → Container sheet redesign: ?
-- BUG-49 isPremiumProvider ref.read → ref.watch in insights_screen.dart: ?
-- flutter analyze: ?
-- Any blockers: ?
+**Status:** COMPLETED
+- FirestoreService updated: YES
+- SubscriptionNotifier updated: YES
+- Docs cleaned up: YES
+- flutter analyze: 0 issues
+
