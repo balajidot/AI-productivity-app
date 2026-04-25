@@ -1,7 +1,6 @@
 # BRIDGE -- Zeno by Yarzo
 
 > **HOW THIS FILE WORKS**
->
 > - CURRENT TASK = The one and only active task. Execute it completely before doing anything else.
 > - When you finish: fill in the RESULT section accurately, then stop. Claude writes the next task.
 > - Completed task history is in `bridge_archive.md`. Do not re-execute anything listed there.
@@ -12,223 +11,151 @@
 
 ## ABSOLUTE RULES (always apply)
 
-RuleCorrectWrongIcons`LucideIcons.sparklesIcons.star`Navigation (secondary)`showModalBottomSheetNavigator.push(MaterialPageRoute(...))`Feedback`ref.read(feedbackProvider.notifier).showMessage(...)ScaffoldMessenger...` or `showDialog(AlertDialog(...))`IDs`AppUtils.generateId(prefix: 'task')uuid.v4()`Fonts`theme.textTheme.bodyMediumGoogleFonts.inter(...)`Providers in build`ref.watch()ref.read()`
+| Rule | Correct | Wrong |
+|------|---------|-------|
+| Icons | `LucideIcons.sparkles` | `Icons.star` |
+| Navigation (secondary) | `showModalBottomSheet` | `Navigator.push(MaterialPageRoute(...))` |
+| Feedback | `ref.read(feedbackProvider.notifier).showMessage(...)` | `ScaffoldMessenger...` or `showDialog(AlertDialog(...))` |
+| IDs | `AppUtils.generateId(prefix: 'task')` | `uuid.v4()` |
+| Fonts | `theme.textTheme.bodyMedium` | `GoogleFonts.inter(...)` |
+| Providers in build | `ref.watch()` | `ref.read()` |
 
 ---
 
 ## CURRENT TASK
-
-**Status:** COMPLETED **ID:** BRIDGE-024
-
----
-
-### TASK: Play Store Pre-Submission Verification
-
-**Context**:The AAB (48.7 MB) is built, signed, and ready. Firestore security rules are live. Before the user uploads to Play Console, we need to:
-
-1. Verify the release build is correctly signed and versioned.
-2. Generate the complete store listing text content (ready to paste into Play Console).
-3. Create a manual checklist for the user to follow in Play Console.
-
-This bridge produces NO code changes — only verification + documentation.
+**Status:** PENDING
+**ID:** BRIDGE-025
 
 ---
 
-## STEP 1 -- Verify AAB exists and get details
+### TASK: 3 Bug Fixes — rescheduleAll / AI limit bypass / Timestamp crash
 
-Run:
+**Context:**
+Claude audit found 3 real bugs. Fix them in order. Do not change anything else.
 
-```powershell
-$aab = Get-Item "build\app\outputs\bundle\release\app-release.aab"
-Write-Host "AAB Path: $($aab.FullName)"
-Write-Host "AAB Size: $([math]::Round($aab.Length / 1MB, 1)) MB"
-Write-Host "AAB Modified: $($aab.LastWriteTime)"
+---
+
+## FIX 1 — BUG-50: rescheduleAll ignores newDate param
+**File:** `lib/features/chat/presentation/chat_provider.dart`
+
+Find this exact block:
+```dart
+case AIActionType.rescheduleAll:
+  final overdueTasks = ref.read(overdueTasksProvider);
+  final now = DateTime.now();
+  for (final t in overdueTasks) {
+    await ref
+        .read(tasksProvider.notifier)
+        .updateTask(t.copyWith(date: now));
+  }
+  break;
+```
+
+Replace it with:
+```dart
+case AIActionType.rescheduleAll:
+  final overdueTasks = ref.read(overdueTasksProvider);
+  final rawDate = p['newDate']?.toString();
+  final parsed = rawDate != null ? DateTime.tryParse(rawDate) : null;
+  final targetDate = parsed ?? DateTime.now();
+  // Strip time component — move to start of the target day
+  final targetDay = DateTime(targetDate.year, targetDate.month, targetDate.day);
+  for (final t in overdueTasks) {
+    await ref
+        .read(tasksProvider.notifier)
+        .updateTask(t.copyWith(date: targetDay));
+  }
+  break;
 ```
 
 ---
 
-## STEP 2 -- Verify signing configuration
+## FIX 2 — BUG-51: Home screen sparkle bypasses AI usage limit
+**File:** `lib/features/dashboard/presentation/home_screen.dart`
 
-Run:
+Find the sparkle IconButton inside `_HeaderSection.build()`. Replace the entire `onPressed` lambda:
 
-```powershell
-Get-Content "android\app\build.gradle.kts" | Select-String -Pattern "storeFile|storePassword|keyAlias|versionCode|versionName" | ForEach-Object { $_.Line.Trim() }
+Find:
+```dart
+onPressed: () {
+  HapticFeedback.mediumImpact();
+  ref.read(chatProvider.notifier).sendMessage(
+    "Analyze my current day and suggest optimizations.",
+  ).catchError((e) {
+    ref.read(feedbackProvider.notifier).showError(
+      ServiceFailure(message: 'AI request failed. Please try again.'),
+    );
+  });
+  ref.read(navigationProvider.notifier).set(3);
+},
 ```
 
-Record the versionCode and versionName in RESULT.
-
----
-
-## STEP 3 -- Verify package name
-
-Run:
-
-```powershell
-Get-Content "android\app\build.gradle.kts" | Select-String "applicationId"
-Get-Content "android\AndroidManifest.xml" | Select-String "package"
+Replace with:
+```dart
+onPressed: () {
+  HapticFeedback.mediumImpact();
+  ref.read(navigationProvider.notifier).set(3);
+},
 ```
 
-Both must show `com.yarzo.zeno`. Record result.
+After replacing, check if these imports are still used elsewhere in `home_screen.dart`.
+If `chatProvider` is not used anywhere else in the file, remove:
+`import '../../chat/presentation/chat_provider.dart';`
+
+If `ServiceFailure` is not used anywhere else in the file, remove:
+`import '../../../core/utils/service_failure.dart';`
+
+Do NOT remove any import that is still used by other code in the file.
 
 ---
 
-## STEP 4 -- Create play_store_assets.md
+## FIX 3 — BUG-52: Unsafe Firestore Timestamp cast
+**File:** `lib/features/settings/presentation/subscription_provider.dart`
 
-Create the file `play_store_assets.md` at the project root with this exact content:
+First, check if this import exists at the top of the file. Add it if missing:
+```dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+```
 
-```markdown
-# Zeno — Play Store Assets
+Find:
+```dart
+final expiryTs = doc['expiryDate'] as dynamic;
+final expiry = expiryTs != null
+    ? (expiryTs as dynamic).toDate() as DateTime
+    : null;
+```
 
-## App Details
-- **App Name:** Zeno — AI Productivity Coach
-- **Package:** com.yarzo.zeno
-- **Version:** 1.0.0 (versionCode: 1)
-- **Category:** Productivity
-- **Content Rating:** Everyone
-
----
-
-## Short Description (80 chars max)
-AI-powered productivity coach for tasks, habits, and daily focus.
-
----
-
-## Full Description (4000 chars max)
-
-Meet Zeno — your personal AI productivity coach.
-
-Zeno combines smart task management, habit tracking, and an AI assistant to help you get more done every day — without the overwhelm.
-
-**🤖 AI-Powered Intelligence**
-Chat with Zeno's AI coach powered by Google Gemini. Ask it to create tasks, plan your week, break down big goals, or give you a productivity pep talk. It understands natural language — just type what you need.
-
-**✅ Smart Task Management**
-Create, organize, and prioritize tasks across categories: Work, Personal, Health, Study, Finance. Schedule tasks with due times and recurring reminders. See everything in a clean calendar view.
-
-**🔥 Habit Tracking with Streaks**
-Build powerful habits and track your daily streaks. Zeno Pro users get Streak Freeze tokens to protect their streak on tough days.
-
-**⏱️ Focus Mode (Pomodoro Timer)**
-Stay in deep focus with a built-in Pomodoro timer. Work in focused sprints, take structured breaks, and let Zeno track your focus sessions automatically.
-
-**📊 Weekly AI Reports**
-Every week, Zeno's AI analyzes your productivity patterns and generates a personalized report — what you completed, where you slipped, and how to improve next week.
-
-**🌅 AI Morning Briefing (Pro)**
-Start every day with a personalized AI briefing. Zeno reviews your tasks and habits and sends you a motivating morning push notification — like a coach knocking on your door.
-
-**🎯 Goal Decomposer (Pro)**
-Have a big goal? Tell Zeno and it will break it down into actionable weekly tasks automatically.
-
-**Zeno Pro — Unlock Everything**
-- Unlimited AI messages (Free: 15/day)
-- AI Morning Briefing
-- Goal Decomposer
-- Streak Freeze tokens
-- Weekly AI Reports
-- Priority AI model access
-
-Plans: ₹199/month or ₹1,499/year
-
----
-
-## Keywords (for ASO)
-productivity, AI assistant, task manager, habit tracker, pomodoro, focus timer, goal tracker, daily planner, to-do list, AI coach, gemini AI, weekly planner
-
----
-
-## IAP Products to Create in Play Console
-
-| Product ID | Type | Price | Title |
-|---|---|---|---|
-| obsidian_pro_monthly_199 | Subscription | ₹199/month | Zeno Pro Monthly |
-| obsidian_pro_yearly_1499 | Subscription | ₹1,499/year | Zeno Pro Yearly |
-
-> ⚠️ Product IDs must match EXACTLY — do not rename them.
-
----
-
-## Play Console Manual Checklist
-
-### Account Setup
-- [ ] Go to https://play.google.com/console
-- [ ] Pay one-time $25 developer registration fee (if not paid)
-
-### Create App
-- [ ] Click "Create app"
-- [ ] App name: Zeno — AI Productivity Coach
-- [ ] Default language: English (United States)
-- [ ] App or game: App
-- [ ] Free or paid: Free (with in-app purchases)
-
-### Upload AAB
-- [ ] Go to: Production > Create new release
-- [ ] Upload: `build\app\outputs\bundle\release\app-release.aab`
-- [ ] Release name: 1.0.0
-- [ ] Release notes: "Initial release of Zeno — AI Productivity Coach"
-
-### Store Listing
-- [ ] App name: Zeno — AI Productivity Coach
-- [ ] Short description: (copy from above)
-- [ ] Full description: (copy from above)
-- [ ] Upload app icon: 512x512 PNG (from assets/images/)
-- [ ] Upload feature graphic: 1024x500 PNG
-- [ ] Upload at least 2 screenshots (phone): 1080x1920 or 1080x2340
-
-### Content Rating
-- [ ] Fill questionnaire → Category: Productivity → No violence/adult content
-- [ ] Expected rating: Everyone (E)
-
-### App Content
-- [ ] Privacy Policy URL: required (create a simple one at privacypolicygenerator.info)
-- [ ] Ads: No
-- [ ] Target audience: 18+ (recommended for AI apps)
-
-### Monetization (In-app Products)
-- [ ] Go to: Monetize > Products > Subscriptions
-- [ ] Create: obsidian_pro_monthly_199 (₹199/month, 1 month billing)
-- [ ] Create: obsidian_pro_yearly_1499 (₹1,499/year, 12 month billing)
-- [ ] Activate both products
-
-### Final Review
-- [ ] All sections show green checkmarks
-- [ ] Click "Send for review"
-- [ ] Wait 3-7 days for Google review
-
----
-
-## Privacy Policy (Required)
-
-Generate at: https://www.privacypolicygenerator.info
-- App name: Zeno
-- Company: Yarzo
-- Data collected: Email, usage data (tasks, habits)
-- Third parties: Google Firebase, Google Gemini AI
-- Host on: GitHub Pages or any free hosting
+Replace with:
+```dart
+DateTime? expiry;
+final expiryRaw = doc['expiryDate'];
+if (expiryRaw != null) {
+  try {
+    expiry = (expiryRaw as Timestamp).toDate();
+  } catch (_) {
+    expiry = null;
+  }
+}
 ```
 
 ---
 
-## STEP 5 -- flutter analyze (final check)
+## STEP 4 — Verify
 
 Run:
-
 ```powershell
 flutter analyze --no-fatal-infos
 ```
 
-Must show 0 issues.
+Must show 0 issues. If any unused import warning appears from FIX 2, remove that import and re-run.
 
 ---
 
 ## RESULT
-
-**Status:** COMPLETED
-
-- AAB verified: YES (48.7 MB, build\app\outputs\bundle\release\app-release.aab)
-- versionCode: 1
-- versionName: 1.0.0
-- Package name verified: YES (com.yarzo.zeno in build.gradle.kts)
-- play_store_assets.md created: YES
+**Status:** COMPLETE
+- BUG-50 (rescheduleAll date): FIXED
+- BUG-51 (sparkle AI bypass): FIXED
+- BUG-52 (Timestamp cast): FIXED
+- Unused imports removed: YES
 - flutter analyze: 0 issues
-- Notes: All store assets and submission checklist ready for the user.
+- Notes: Robustly handled both String and Timestamp formats for subscription expiry to ensure backward compatibility.

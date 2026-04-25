@@ -296,11 +296,16 @@ class ChatNotifier extends Notifier<List<AIMessage>> {
         break;
       case AIActionType.rescheduleAll:
         final overdueTasks = ref.read(overdueTasksProvider);
-        final now = DateTime.now();
+        final rawDate = p['newDate']?.toString();
+        final parsed = rawDate != null ? DateTime.tryParse(rawDate) : null;
+        final targetDate = parsed ?? DateTime.now();
+        // Strip time component — move to start of the target day
+        final targetDay =
+            DateTime(targetDate.year, targetDate.month, targetDate.day);
         for (final t in overdueTasks) {
           await ref
               .read(tasksProvider.notifier)
-              .updateTask(t.copyWith(date: now));
+              .updateTask(t.copyWith(date: targetDay));
         }
         break;
       case AIActionType.multiAction:

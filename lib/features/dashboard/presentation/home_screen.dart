@@ -16,7 +16,6 @@ import '../../focus/presentation/pomodoro_provider.dart';
 import '../../chat/presentation/widgets/nl_input_bar.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../tasks/presentation/widgets/quick_add_task_sheet.dart';
-import '../../../core/utils/service_failure.dart';
 import 'morning_briefing_service.dart';
 
 
@@ -130,13 +129,6 @@ class _HeaderSection extends ConsumerWidget {
           IconButton(
             onPressed: () {
               HapticFeedback.mediumImpact();
-              ref.read(chatProvider.notifier).sendMessage(
-                "Analyze my current day and suggest optimizations.",
-              ).catchError((e) {
-                ref.read(feedbackProvider.notifier).showError(
-                  ServiceFailure(message: 'AI request failed. Please try again.'),
-                );
-              });
               ref.read(navigationProvider.notifier).set(3);
             },
             icon: Icon(LucideIcons.sparkles, color: theme.colorScheme.primary),

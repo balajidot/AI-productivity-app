@@ -197,3 +197,4 @@
 | 21:05 | Antigravity | 🔧 | **BRIDGE-022**: Subscription Expiry Auto-Revoke (Firestore sync) + Doc Cleanup (Obsidian AI -> Zeno) | `firestore_service.dart`, `subscription_provider.dart`, `Gemini.md`, `CLAUDE.md` |
 | 21:15 | Antigravity | 🛡️ | **BRIDGE-023**: Production Firestore Security Rules (Per-user lockdown) | `firestore.rules`, `firebase.json` |
 | 21:30 | Antigravity | 🚀 | **BRIDGE-024**: Play Store Submission Assets + Checklist Generated | `play_store_assets.md` |
+| 21:40 | Antigravity | 🐛 | **BRIDGE-025**: Bug Fixes: rescheduleAll logic, home sparkle bypass, and safe Timestamp casting | `chat_provider.dart`, `home_screen.dart`, `subscription_provider.dart` |

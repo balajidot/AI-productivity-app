@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import '../data/subscription_service.dart';
@@ -73,11 +75,21 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
       if (user != null && firestore != null) {
         final doc = await firestore.getUserProfile();
         if (doc != null) {
-          final isPremiumDoc = doc['isPremium'] as bool? ?? false;
-          final expiryTs = doc['expiryDate'] as dynamic;
-          final expiry = expiryTs != null
-              ? (expiryTs as dynamic).toDate() as DateTime
-              : null;
+          final isPremiumDoc = doc['isPremium'] == true;
+          final dynamic expiryTs = doc['expiryDate'];
+          DateTime? expiry;
+
+          if (expiryTs != null) {
+            try {
+              if (expiryTs is Timestamp) {
+                expiry = expiryTs.toDate();
+              } else if (expiryTs is String) {
+                expiry = DateTime.tryParse(expiryTs);
+              }
+            } catch (e) {
+              debugPrint('Error parsing subscription expiry: $e');
+            }
+          }
           
           final now = DateTime.now();
           final isStillActive = isPremiumDoc &&
